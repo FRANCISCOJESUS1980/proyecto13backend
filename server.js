@@ -1,39 +1,38 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
-const mongoose = require('mongoose')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
-const userRoutes = require('./routes/userRoutes')
+const connectDB = require('./src/config/db')
+const userRoutes = require('./src/routes/userRoutes')
 
 const app = express()
-const PORT = process.env.PORT || 5000
 
-// Middleware de seguridad
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 app.use(cors())
 app.use(helmet())
-app.use(express.json())
 
-// Límite de solicitudes para prevenir ataques de fuerza bruta
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100 // Máximo de peticiones por IP
+  windowMs: 15 * 60 * 1000,
+  max: 100
 })
 app.use(limiter)
 
-// Rutas
+connectDB()
+
 app.use('/api/users', userRoutes)
 
-// Conexión a MongoDB
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-  .then(() => {
-    console.log('🔥 Conectado a MongoDB')
-    app.listen(PORT, () =>
-      console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
-    )
-  })
-  .catch((err) => console.error('Error al conectar con MongoDB:', err))
+app.use('*', (req, res) => {
+  res.status(404).json({ message: 'Ruta no encontrada' })
+})
+
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).json({ message: 'Error interno del servidor' })
+})
+
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`))
+
+module.exports = app
