@@ -10,16 +10,17 @@ const {
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  verificarCodigo
 } = require('../controllers/userController')
 
 router.post('/register', registerUser)
 router.post('/login', loginUser)
+router.post('/verificar-codigo', verificarCodigo)
 
 router.get('/profile', protect, getProfile)
 router.put('/profile', protect, updateProfile)
 router.put('/change-password', protect, changePassword)
-
 router.get('/', protect, getAllUsers)
 router.get('/:id', protect, getUserById)
 router.put('/:id', protect, updateUser)
