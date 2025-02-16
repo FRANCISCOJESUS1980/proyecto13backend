@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { protect } = require('../middlewares/authMiddleware')
+const upload = require('../config/multer')
 const {
   registerUser,
   loginUser,
@@ -14,7 +15,7 @@ const {
   verificarCodigo
 } = require('../controllers/userController')
 
-router.post('/register', registerUser)
+router.post('/register', upload.single('avatar'), registerUser)
 router.post('/login', loginUser)
 router.post('/verificar-codigo', verificarCodigo)
 

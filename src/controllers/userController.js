@@ -1,6 +1,8 @@
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
+const cloudinary = require('../config/cloudinary')
+const fs = require('fs').promises
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
@@ -50,13 +52,7 @@ exports.verificarCodigo = async (req, res) => {
 
     return res.status(403).json({
       success: false,
-      message: 'Código inválido',
-      debug: {
-        recibido: codigoRecibido,
-        esCreador: codigoRecibido === codigoCreador,
-        esAdmin: codigoRecibido === codigoAdmin,
-        esMonitor: codigoRecibido === codigoMonitor
-      }
+      message: 'Código inválido'
     })
   } catch (error) {
     console.error('Error en verificarCodigo:', error)
@@ -71,9 +67,15 @@ exports.verificarCodigo = async (req, res) => {
 exports.registerUser = async (req, res) => {
   try {
     const { nombre, email, password, rol, codigoAutorizacion } = req.body
+    let avatarUrl = 'default-avatar.jpg'
+
+    console.log('Archivo recibido:', req.file)
 
     const userExists = await User.findOne({ email })
     if (userExists) {
+      if (req.file) {
+        await fs.unlink(req.file.path)
+      }
       return res.status(400).json({
         success: false,
         message: 'El usuario ya existe con este email'
@@ -94,19 +96,26 @@ exports.registerUser = async (req, res) => {
         case 'monitor':
           codigoEsperado = String(process.env.CODIGO_SECRETO_MONITOR).trim()
           break
+        default:
+          break
       }
 
       if (codigoRecibido !== codigoEsperado) {
+        if (req.file) {
+          await fs.unlink(req.file.path)
+        }
         return res.status(403).json({
           success: false,
           message: `Código de autorización inválido para rol de ${rol}`
         })
       }
 
-      // Verificar si ya existe un creador (solo para rol creador)
       if (rol === 'creador') {
         const existingCreator = await User.findOne({ rol: 'creador' })
         if (existingCreator) {
+          if (req.file) {
+            await fs.unlink(req.file.path)
+          }
           return res.status(403).json({
             success: false,
             message: 'Ya existe un usuario con rol de creador'
@@ -115,11 +124,40 @@ exports.registerUser = async (req, res) => {
       }
     }
 
+    if (req.file) {
+      try {
+        console.log('Subiendo imagen a Cloudinary...')
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'avatars',
+          width: 150,
+          height: 150,
+          crop: 'fill'
+        })
+        console.log('Respuesta de Cloudinary:', result)
+        avatarUrl = result.secure_url
+
+        await fs.unlink(req.file.path)
+        console.log('Archivo temporal eliminado')
+      } catch (error) {
+        console.error('Error al subir imagen a Cloudinary:', error)
+        if (req.file) {
+          await fs.unlink(req.file.path)
+        }
+        return res.status(500).json({
+          success: false,
+          message: 'Error al subir la imagen',
+          error: error.message
+        })
+      }
+    }
+
+    console.log('Creando usuario con avatar:', avatarUrl)
     const user = await User.create({
       nombre,
       email,
       password,
-      rol
+      rol,
+      avatar: avatarUrl
     })
 
     const token = generateToken(user._id)
@@ -131,11 +169,15 @@ exports.registerUser = async (req, res) => {
         nombre: user.nombre,
         email: user.email,
         rol: user.rol,
+        avatar: user.avatar,
         token
       }
     })
   } catch (error) {
     console.error('Error en registerUser:', error)
+    if (req.file) {
+      await fs.unlink(req.file.path)
+    }
     res.status(500).json({
       success: false,
       message: 'Error en el registro',
@@ -163,6 +205,7 @@ exports.loginUser = async (req, res) => {
         nombre: user.nombre,
         email: user.email,
         rol: user.rol,
+        avatar: user.avatar,
         token: generateToken(user._id)
       }
     })

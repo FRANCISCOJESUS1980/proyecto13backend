@@ -5,19 +5,35 @@ const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 const connectDB = require('./src/config/db')
 const userRoutes = require('./src/routes/userRoutes')
+const path = require('path')
+const fs = require('fs')
 
 const app = express()
+
+const uploadDir = path.join(__dirname, 'uploads')
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true })
+}
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors())
-app.use(helmet())
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: 'cross-origin'
+    }
+  })
+)
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100
 })
 app.use(limiter)
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 connectDB()
 
