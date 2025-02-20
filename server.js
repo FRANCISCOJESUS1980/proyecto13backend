@@ -7,6 +7,7 @@ const connectDB = require('./src/config/db')
 const userRoutes = require('./src/routes/userRoutes')
 const path = require('path')
 const fs = require('fs')
+const cookieParser = require('cookie-parser')
 
 const app = express()
 
@@ -18,6 +19,7 @@ if (!fs.existsSync(uploadDir)) {
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors())
+app.use(cookieParser())
 
 app.use(
   helmet({
