@@ -5,6 +5,7 @@ const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 const connectDB = require('./src/config/db')
 const userRoutes = require('./src/routes/userRoutes')
+const classRoutes = require('./src/routes/classRoutes') // Añadida esta línea
 const path = require('path')
 const fs = require('fs')
 const cookieParser = require('cookie-parser')
@@ -18,7 +19,12 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use(cors())
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+  })
+)
 app.use(cookieParser())
 
 app.use(
@@ -40,6 +46,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 connectDB()
 
 app.use('/api/users', userRoutes)
+app.use('/api/classes', classRoutes)
 
 app.use('*', (req, res) => {
   res.status(404).json({ message: 'Ruta no encontrada' })

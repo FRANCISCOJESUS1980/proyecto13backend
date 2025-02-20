@@ -42,11 +42,14 @@ exports.protect = async (req, res, next) => {
   }
 }
 
-exports.admin = (req, res, next) => {
-  if (req.user && req.user.rol === 'admin') {
-    return next()
+exports.authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.rol)) {
+      return res.status(403).json({
+        success: false,
+        message: `El rol ${req.user.rol} no está autorizado para realizar esta acción`
+      })
+    }
+    next()
   }
-  return res
-    .status(403)
-    .json({ message: 'Acción prohibida, necesitas ser administrador' })
 }
