@@ -11,34 +11,40 @@ const {
   toggleProductStatus
 } = require('../controllers/productController')
 const { protect, authorize } = require('../middlewares/authMiddleware')
-
 const validateProductId = require('../middlewares/validateProductId')
+const upload = require('../config/multer')
 
-router.get('/', getProducts)
-router.get('/search', searchProducts)
-router.get('/categoria/:categoria', getProductsByCategory)
-router.get('/:id', validateProductId, getProductById)
+router.get('/productos', getProducts)
+router.get('/productos/search', searchProducts)
+router.get('/productos/categoria/:categoria', getProductsByCategory)
+router.get('/productos/:id', validateProductId, getProductById)
 
 router.use(protect)
 
-router.post('/', authorize('admin', 'creador'), createProduct)
+router.post(
+  '/productos',
+  upload.single('imagen'),
+  authorize('admin', 'creador'),
+  createProduct
+)
 
 router.put(
-  '/:id',
+  '/productos/:id',
   validateProductId,
+  upload.single('imagen'),
   authorize('admin', 'creador'),
   updateProduct
 )
 
 router.delete(
-  '/:id',
+  '/productos/:id',
   validateProductId,
   authorize('admin', 'creador'),
   deleteProduct
 )
 
 router.patch(
-  '/:id/estado',
+  '/productos/:id/estado',
   validateProductId,
   authorize('admin', 'creador'),
   toggleProductStatus

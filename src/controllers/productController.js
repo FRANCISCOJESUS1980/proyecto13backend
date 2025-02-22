@@ -1,4 +1,5 @@
 const Product = require('../models/Product')
+const cloudinary = require('../config/cloudinary')
 
 exports.getProducts = async (req, res) => {
   try {
@@ -62,7 +63,20 @@ exports.getProductById = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const newProduct = new Product(req.body)
+    let imageUrl = ''
+
+    if (req.file) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'productos'
+      })
+      imageUrl = uploadResult.secure_url
+    }
+
+    const newProduct = new Product({
+      ...req.body,
+      imagen: imageUrl
+    })
+
     await newProduct.save()
 
     res.status(201).json({
@@ -90,9 +104,35 @@ exports.updateProduct = async (req, res) => {
       })
     }
 
+    let imageUrl = product.imagen
+
+    if (req.file) {
+      if (product.imagen) {
+        const publicId = product.imagen.split('/').pop().split('.')[0]
+        await cloudinary.uploader.destroy(`productos/${publicId}`)
+      }
+
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'productos'
+      })
+      imageUrl = uploadResult.secure_url
+    }
+
+    const updateData = {
+      nombre: req.body.nombre,
+      descripcion: req.body.descripcion,
+      precio: Number(req.body.precio),
+      categoria: req.body.categoria,
+      stock: Number(req.body.stock),
+      marca: req.body.marca,
+      estado: req.body.estado,
+      destacado: req.body.destacado === 'true',
+      imagen: imageUrl
+    }
+
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     )
 
@@ -102,6 +142,7 @@ exports.updateProduct = async (req, res) => {
       message: 'Producto actualizado exitosamente'
     })
   } catch (error) {
+    console.error('Error al actualizar producto:', error)
     res.status(500).json({
       success: false,
       message: 'Error al actualizar el producto',

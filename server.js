@@ -5,7 +5,8 @@ const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 const connectDB = require('./src/config/db')
 const userRoutes = require('./src/routes/userRoutes')
-const classRoutes = require('./src/routes/classRoutes') // Añadida esta línea
+const classRoutes = require('./src/routes/classRoutes')
+const productRoutes = require('./src/routes/productRoutes')
 const path = require('path')
 const fs = require('fs')
 const cookieParser = require('cookie-parser')
@@ -47,6 +48,7 @@ connectDB()
 
 app.use('/api/users', userRoutes)
 app.use('/api/classes', classRoutes)
+app.use('/api', productRoutes)
 
 app.use('*', (req, res) => {
   res.status(404).json({ message: 'Ruta no encontrada' })
