@@ -10,7 +10,6 @@ const cookieParser = require('cookie-parser')
 const http = require('http')
 const { Server } = require('socket.io')
 const Message = require('./src/models/Chat')
-const mongoose = require('mongoose')
 
 const app = express()
 const server = http.createServer(app)
@@ -42,17 +41,18 @@ app.use(
 
 app.use(
   helmet({
-    crossOriginResourcePolicy: {
-      policy: 'cross-origin'
-    }
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
   })
 )
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100
+  max: 500,
+  message: 'Demasiadas solicitudes, intenta de nuevo más tarde',
+  standardHeaders: true,
+  legacyHeaders: false
 })
-app.use(limiter)
+app.use('/api/', limiter)
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 

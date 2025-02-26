@@ -3,24 +3,14 @@ const User = require('../models/User')
 
 exports.protect = async (req, res, next) => {
   try {
-    let token
-
-    if (
+    let token =
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
-    ) {
-      token = req.headers.authorization.split(' ')[1]
-    }
-
-    if (!token && req.cookies.token) {
-      token = req.cookies.token
-    }
+        ? req.headers.authorization.split(' ')[1]
+        : req.cookies.token
 
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'No autorizado para acceder a esta ruta'
-      })
+      return res.status(401).json({ success: false, message: 'No autorizado' })
     }
 
     try {
@@ -28,10 +18,9 @@ exports.protect = async (req, res, next) => {
       req.user = await User.findById(decoded.id).select('-password')
       next()
     } catch (error) {
-      return res.status(401).json({
-        success: false,
-        message: 'Token no válido'
-      })
+      return res
+        .status(401)
+        .json({ success: false, message: 'Token no válido' })
     }
   } catch (error) {
     res.status(500).json({
@@ -47,7 +36,7 @@ exports.authorize = (...roles) => {
     if (!roles.includes(req.user.rol)) {
       return res.status(403).json({
         success: false,
-        message: `El rol ${req.user.rol} no está autorizado para realizar esta acción`
+        message: `El rol ${req.user.rol} no está autorizado`
       })
     }
     next()
