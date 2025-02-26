@@ -243,7 +243,30 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.user._id, req.body, {
+    const userData = { ...req.body }
+
+    if (req.file) {
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'crossfit/usuarios',
+          transformation: [{ width: 200, height: 200, crop: 'fill' }]
+        })
+
+        userData.avatar = result.secure_url
+        console.log('URL de Cloudinary guardada en avatar:', result.secure_url)
+
+        fs.unlinkSync(req.file.path)
+      } catch (error) {
+        console.error('Error al subir imagen a Cloudinary:', error)
+        return res.status(500).json({
+          success: false,
+          message: 'Error al subir la imagen',
+          error: error.message
+        })
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, userData, {
       new: true,
       runValidators: true
     })
@@ -253,6 +276,7 @@ exports.updateProfile = async (req, res) => {
       data: user
     })
   } catch (error) {
+    console.error('Error al actualizar perfil:', error)
     res.status(500).json({
       success: false,
       message: 'Error al actualizar el perfil',

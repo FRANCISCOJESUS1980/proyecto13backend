@@ -1,12 +1,66 @@
 const Class = require('../models/Class')
 const cloudinary = require('../config/cloudinary')
-const fs = require('fs').promises
+const fs = require('fs')
+
+exports.createClass = async (req, res) => {
+  try {
+    let classData = {
+      ...req.body
+    }
+
+    if (classData.entrenador === '') {
+      delete classData.entrenador
+    }
+
+    if (req.file) {
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'crossfit/clases'
+        })
+
+        classData.imagen = result.secure_url
+
+        fs.unlinkSync(req.file.path)
+      } catch (error) {
+        console.error('Error al subir imagen a Cloudinary:', error)
+        return res.status(500).json({
+          success: false,
+          message: 'Error al subir la imagen',
+          error: error.message
+        })
+      }
+    }
+
+    const newClass = await Class.create(classData)
+
+    res.status(201).json({
+      success: true,
+      message: 'Clase creada exitosamente',
+      data: newClass
+    })
+  } catch (error) {
+    console.error('Error al crear clase:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear la clase',
+      error: error.message
+    })
+  }
+}
 
 exports.getClasses = async (req, res) => {
   try {
     const classes = await Class.find()
-      .populate('monitor', 'nombre email')
-      .populate('inscritos', 'nombre email')
+      .populate({
+        path: 'inscritos',
+        select: 'nombre email avatar rol',
+        model: 'User'
+      })
+      .populate({
+        path: 'entrenador',
+        select: 'nombre email avatar',
+        model: 'User'
+      })
 
     res.status(200).json({
       success: true,
@@ -14,6 +68,7 @@ exports.getClasses = async (req, res) => {
       data: classes
     })
   } catch (error) {
+    console.error('Error al obtener clases:', error)
     res.status(500).json({
       success: false,
       message: 'Error al obtener las clases',
@@ -25,8 +80,8 @@ exports.getClasses = async (req, res) => {
 exports.getClassById = async (req, res) => {
   try {
     const classItem = await Class.findById(req.params.id)
-      .populate('monitor', 'nombre email')
-      .populate('inscritos', 'nombre email')
+      .populate('inscritos', 'nombre email imagen rol')
+      .populate('entrenador', 'nombre email imagen')
 
     if (!classItem) {
       return res.status(404).json({
@@ -40,6 +95,7 @@ exports.getClassById = async (req, res) => {
       data: classItem
     })
   } catch (error) {
+    console.error('Error al obtener clase:', error)
     res.status(500).json({
       success: false,
       message: 'Error al obtener la clase',
@@ -48,132 +104,68 @@ exports.getClassById = async (req, res) => {
   }
 }
 
-exports.createClass = async (req, res) => {
-  try {
-    console.log('Body recibido:', req.body)
-    console.log('Archivo recibido:', req.file)
-    console.log('Usuario:', req.user)
-
-    let imageUrl = null
-
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'classes',
-        width: 500,
-        height: 500,
-        crop: 'fill'
-      })
-      imageUrl = result.secure_url
-      await fs.unlink(req.file.path)
-    }
-
-    let diasSemana = req.body.diasSemana
-    if (typeof diasSemana === 'string') {
-      try {
-        diasSemana = JSON.parse(diasSemana)
-      } catch (e) {
-        console.error('Error al parsear diasSemana:', e)
-        diasSemana = []
-      }
-    }
-
-    const newClass = new Class({
-      nombre: req.body.nombre,
-      descripcion: req.body.descripcion,
-      horario: req.body.horario,
-      duracion: req.body.duracion,
-      capacidadMaxima: req.body.capacidadMaxima,
-      categoria: req.body.categoria,
-      nivel: req.body.nivel,
-      ubicacion: req.body.ubicacion,
-      diasSemana: diasSemana,
-      monitor: req.user._id,
-      imagen: imageUrl
-    })
-
-    await newClass.save()
-
-    res.status(201).json({
-      success: true,
-      data: newClass,
-      message: 'Clase creada exitosamente'
-    })
-  } catch (error) {
-    console.error('Error en createClass:', error)
-    if (req.file) {
-      await fs.unlink(req.file.path).catch(console.error)
-    }
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear la clase',
-      error: error.message
-    })
-  }
-}
-
 exports.updateClass = async (req, res) => {
   try {
-    let classItem = await Class.findById(req.params.id)
+    let classData = { ...req.body }
 
-    if (!classItem) {
+    if (classData.entrenador === '') {
+      delete classData.entrenador
+    }
+
+    const currentClass = await Class.findById(req.params.id)
+    if (!currentClass) {
       return res.status(404).json({
         success: false,
         message: 'Clase no encontrada'
       })
     }
 
-    if (
-      classItem.monitor.toString() !== req.user._id.toString() &&
-      req.user.rol !== 'admin'
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tiene permiso para actualizar esta clase'
-      })
-    }
-
-    let imageUrl = classItem.imagen
-
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'classes',
-        width: 500,
-        height: 500,
-        crop: 'fill'
-      })
-      imageUrl = result.secure_url
-      await fs.unlink(req.file.path)
+      try {
+        if (
+          currentClass.imagen &&
+          currentClass.imagen.includes('cloudinary.com')
+        ) {
+          const publicId = currentClass.imagen.split('/').pop().split('.')[0]
+          await cloudinary.uploader.destroy(`crossfit/clases/${publicId}`)
+        }
+
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'crossfit/clases'
+        })
+
+        classData.imagen = result.secure_url
+
+        fs.unlinkSync(req.file.path)
+      } catch (error) {
+        console.error('Error al subir imagen a Cloudinary:', error)
+        return res.status(500).json({
+          success: false,
+          message: 'Error al subir la imagen',
+          error: error.message
+        })
+      }
+    } else {
+      classData.imagen = currentClass.imagen
     }
 
-    let diasSemana = req.body.diasSemana
-    if (typeof diasSemana === 'string') {
-      try {
-        diasSemana = JSON.parse(diasSemana)
-      } catch (e) {
-        console.error('Error al parsear diasSemana:', e)
-        diasSemana = classItem.diasSemana
-      }
-    }
+    classData.inscritos = currentClass.inscritos
 
     const updatedClass = await Class.findByIdAndUpdate(
       req.params.id,
-      {
-        ...req.body,
-        diasSemana,
-        imagen: imageUrl
-      },
+      classData,
       { new: true, runValidators: true }
     )
+      .populate('inscritos', 'nombre email imagen rol')
+      .populate('entrenador', 'nombre email imagen')
 
     res.status(200).json({
       success: true,
-      data: updatedClass,
-      message: 'Clase actualizada exitosamente'
+      message: 'Clase actualizada exitosamente',
+      data: updatedClass
     })
   } catch (error) {
-    if (req.file) {
-      await fs.unlink(req.file.path).catch(console.error)
-    }
+    console.error('Error al actualizar clase:', error)
     res.status(500).json({
       success: false,
       message: 'Error al actualizar la clase',
@@ -193,23 +185,24 @@ exports.deleteClass = async (req, res) => {
       })
     }
 
-    if (
-      classItem.monitor.toString() !== req.user._id.toString() &&
-      req.user.rol !== 'admin'
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tiene permiso para eliminar esta clase'
-      })
+    if (classItem.imagen && classItem.imagen.includes('cloudinary.com')) {
+      try {
+        const publicId = classItem.imagen.split('/').pop().split('.')[0]
+        await cloudinary.uploader.destroy(`crossfit/clases/${publicId}`)
+      } catch (error) {
+        console.error('Error al eliminar imagen de Cloudinary:', error)
+      }
     }
 
-    await Class.findByIdAndDelete(req.params.id)
+    await Class.deleteOne({ _id: classItem._id })
 
     res.status(200).json({
       success: true,
-      message: 'Clase eliminada exitosamente'
+      message: 'Clase eliminada exitosamente',
+      data: {}
     })
   } catch (error) {
+    console.error('Error al eliminar clase:', error)
     res.status(500).json({
       success: false,
       message: 'Error al eliminar la clase',

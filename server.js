@@ -4,9 +4,6 @@ const cors = require('cors')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 const connectDB = require('./src/config/db')
-const userRoutes = require('./src/routes/userRoutes')
-const classRoutes = require('./src/routes/classRoutes')
-const productRoutes = require('./src/routes/productRoutes')
 const path = require('path')
 const fs = require('fs')
 const cookieParser = require('cookie-parser')
@@ -61,6 +58,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 connectDB()
 
+app.use('/api/auth', require('./src/routes/userRoutes'))
+app.use('/api/users', require('./src/routes/userRoutes'))
+app.use('/api/classes', require('./src/routes/classRoutes'))
+app.use('/api', require('./src/routes/productRoutes'))
+
 app.get('/api/chat/messages', async (req, res) => {
   try {
     const messages = await Message.find()
@@ -74,10 +76,6 @@ app.get('/api/chat/messages', async (req, res) => {
     res.status(500).json({ message: 'Error al obtener mensajes del chat' })
   }
 })
-
-app.use('/api/users', userRoutes)
-app.use('/api/classes', classRoutes)
-app.use('/api', productRoutes)
 
 io.on('connection', async (socket) => {
   console.log('🟢 Nuevo usuario conectado: ', socket.id)
