@@ -27,6 +27,7 @@ router.post(
   upload.single('imagen'),
   createClass
 )
+
 router.put(
   '/:id',
   validateClassId,
@@ -44,7 +45,9 @@ router.delete(
 
 router.post('/:id/inscribir', protect, async (req, res) => {
   try {
-    const classItem = await Class.findById(req.params.id)
+    let classItem = await Class.findById(req.params.id)
+      .populate('inscritos', 'nombre email avatar rol')
+      .populate('entrenador', 'nombre email avatar')
 
     if (!classItem) {
       return res
@@ -59,21 +62,37 @@ router.post('/:id/inscribir', protect, async (req, res) => {
     }
 
     const userId = req.user._id
-    if (classItem.inscritos.some((id) => id.toString() === userId.toString())) {
+
+    if (
+      classItem.inscritos.some(
+        (inscrito) => inscrito._id.toString() === userId.toString()
+      )
+    ) {
       return res
         .status(400)
         .json({ success: false, message: 'Ya estás inscrito en esta clase' })
     }
 
+    const user = await User.findById(userId).select('nombre email avatar rol')
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Usuario no encontrado' })
+    }
+
     classItem.inscritos.push(userId)
     await classItem.save()
 
-    await classItem.populate('inscritos', 'nombre email imagen rol')
-    await classItem.populate('entrenador', 'nombre email imagen')
+    classItem = await Class.findById(classItem._id)
+      .populate('inscritos', 'nombre email avatar rol')
+      .populate('entrenador', 'nombre email avatar')
 
-    res
-      .status(200)
-      .json({ success: true, message: 'Inscripción exitosa', data: classItem })
+    res.status(200).json({
+      success: true,
+      message: 'Inscripción exitosa',
+      data: classItem
+    })
   } catch (error) {
     console.error('Error en inscripción:', error)
     res.status(500).json({
@@ -86,7 +105,9 @@ router.post('/:id/inscribir', protect, async (req, res) => {
 
 router.post('/:id/cancelar', protect, async (req, res) => {
   try {
-    const classItem = await Class.findById(req.params.id)
+    let classItem = await Class.findById(req.params.id)
+      .populate('inscritos', 'nombre email avatar rol')
+      .populate('entrenador', 'nombre email avatar')
 
     if (!classItem) {
       return res
@@ -95,8 +116,9 @@ router.post('/:id/cancelar', protect, async (req, res) => {
     }
 
     const userId = req.user._id
+
     const inscritoIndex = classItem.inscritos.findIndex(
-      (id) => id.toString() === userId.toString()
+      (inscrito) => inscrito._id.toString() === userId.toString()
     )
 
     if (inscritoIndex === -1) {
@@ -105,11 +127,15 @@ router.post('/:id/cancelar', protect, async (req, res) => {
         .json({ success: false, message: 'No estás inscrito en esta clase' })
     }
 
-    classItem.inscritos.splice(inscritoIndex, 1)
+    classItem.inscritos = classItem.inscritos.filter(
+      (inscrito) => inscrito._id.toString() !== userId.toString()
+    )
+
     await classItem.save()
 
-    await classItem.populate('inscritos', 'nombre email avatar rol')
-    await classItem.populate('entrenador', 'nombre email avatar')
+    classItem = await Class.findById(classItem._id)
+      .populate('inscritos', 'nombre email avatar rol')
+      .populate('entrenador', 'nombre email avatar')
 
     res.status(200).json({
       success: true,
