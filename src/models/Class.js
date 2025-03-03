@@ -59,6 +59,14 @@ const ClassSchema = new mongoose.Schema(
         'domingo'
       ]
     },
+    fecha: {
+      type: Date,
+      default: null
+    },
+    esFechaEspecifica: {
+      type: Boolean,
+      default: false
+    },
     imagen: {
       type: String
     },

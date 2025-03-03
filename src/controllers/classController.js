@@ -4,12 +4,19 @@ const fs = require('fs')
 
 exports.createClass = async (req, res) => {
   try {
-    let classData = {
+    const classData = {
       ...req.body
     }
 
     if (classData.entrenador === '') {
       delete classData.entrenador
+    }
+
+    if (classData.fecha && classData.fecha.trim() !== '') {
+      classData.esFechaEspecifica = true
+    } else {
+      classData.esFechaEspecifica = false
+      classData.fecha = null
     }
 
     if (req.file) {
@@ -106,10 +113,17 @@ exports.getClassById = async (req, res) => {
 
 exports.updateClass = async (req, res) => {
   try {
-    let classData = { ...req.body }
+    const classData = { ...req.body }
 
     if (classData.entrenador === '') {
       delete classData.entrenador
+    }
+
+    if (classData.fecha && classData.fecha.trim() !== '') {
+      classData.esFechaEspecifica = true
+    } else {
+      classData.esFechaEspecifica = false
+      classData.fecha = null
     }
 
     const currentClass = await Class.findById(req.params.id)
