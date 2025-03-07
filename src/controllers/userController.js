@@ -243,7 +243,19 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
+    console.log('Body recibido:', req.body)
+    console.log('Archivo recibido:', req.file)
+
     const userData = { ...req.body }
+
+    if (userData.direccion && typeof userData.direccion === 'string') {
+      try {
+        userData.direccion = JSON.parse(userData.direccion)
+        console.log('Dirección parseada:', userData.direccion)
+      } catch (e) {
+        console.error('Error al parsear direccion:', e)
+      }
+    }
 
     if (req.file) {
       try {
@@ -255,7 +267,7 @@ exports.updateProfile = async (req, res) => {
         userData.avatar = result.secure_url
         console.log('URL de Cloudinary guardada en avatar:', result.secure_url)
 
-        fs.unlinkSync(req.file.path)
+        await fs.unlink(req.file.path)
       } catch (error) {
         console.error('Error al subir imagen a Cloudinary:', error)
         return res.status(500).json({
@@ -266,10 +278,15 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
+    console.log('Datos a actualizar en MongoDB:', userData)
+    console.log('ID de usuario:', req.user._id)
+
     const user = await User.findByIdAndUpdate(req.user._id, userData, {
       new: true,
       runValidators: true
     })
+
+    console.log('Usuario actualizado:', user)
 
     res.status(200).json({
       success: true,
