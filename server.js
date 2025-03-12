@@ -62,6 +62,7 @@ app.use('/api/auth', require('./src/routes/userRoutes'))
 app.use('/api/users', require('./src/routes/userRoutes'))
 app.use('/api/classes', require('./src/routes/classRoutes'))
 app.use('/api', require('./src/routes/productRoutes'))
+app.use('/api/medical-info', require('./src/routes/medicalinfoRoutes'))
 
 app.get('/api/chat/messages', async (req, res) => {
   try {
