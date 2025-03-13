@@ -1,4 +1,4 @@
-const MedicalInfo = require('../models/Medicalinfo')
+const MedicalInfo = require('../models/MedicalInfo')
 const User = require('../models/User')
 
 exports.getMedicalInfo = async (req, res) => {
@@ -111,7 +111,10 @@ exports.getMedicalInfoByAdmin = async (req, res) => {
       })
     }
 
-    const medicalInfo = await MedicalInfo.findOne({ user: userId })
+    const medicalInfo = await MedicalInfo.findOne({ user: userId }).populate(
+      'user',
+      'nombre email rol avatar'
+    )
 
     if (!medicalInfo) {
       return res.status(404).json({
@@ -136,9 +139,19 @@ exports.getMedicalInfoByAdmin = async (req, res) => {
 
 exports.getAllMedicalInfo = async (req, res) => {
   try {
-    const medicalInfoList = await MedicalInfo.find().populate(
-      'user',
-      'name email'
+    const medicalInfoList = await MedicalInfo.find().populate({
+      path: 'user',
+      select: 'nombre email rol avatar',
+      model: 'User'
+    })
+
+    console.log(
+      'Datos de usuarios recuperados:',
+      medicalInfoList.map((info) => ({
+        userId: info.user._id,
+        nombre: info.user.nombre,
+        email: info.user.email
+      }))
     )
 
     res.status(200).json({
