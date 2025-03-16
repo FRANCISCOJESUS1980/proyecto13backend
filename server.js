@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser')
 const http = require('http')
 const { Server } = require('socket.io')
 const Message = require('./src/models/Chat')
-
+const physicalStatsRoutes = require('./src/routes/physicalStatsRoutes')
 const app = express()
 const server = http.createServer(app)
 const io = new Server(server, {
@@ -63,6 +63,7 @@ app.use('/api/users', require('./src/routes/userRoutes'))
 app.use('/api/classes', require('./src/routes/classRoutes'))
 app.use('/api', require('./src/routes/productRoutes'))
 app.use('/api/medical-info', require('./src/routes/medicalinfoRoutes'))
+app.use('/api/physical', physicalStatsRoutes)
 
 app.get('/api/chat/messages', async (req, res) => {
   try {
