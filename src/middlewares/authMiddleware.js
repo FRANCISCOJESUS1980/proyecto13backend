@@ -1,88 +1,54 @@
-/*const jwt = require('jsonwebtoken')
-const User = require('../models/User')
-
-exports.protect = async (req, res, next) => {
-  try {
-    let token =
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-        ? req.headers.authorization.split(' ')[1]
-        : req.cookies.token
-
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'No autorizado' })
-    }
-
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET)
-      req.user = await User.findById(decoded.id).select('-password')
-      next()
-    } catch (error) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Token no válido' })
-    }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error en la autenticación',
-      error: error.message
-    })
-  }
-}
-
-exports.authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.rol)) {
-      return res.status(403).json({
-        success: false,
-        message: `El rol ${req.user.rol} no está autorizado`
-      })
-    }
-    next()
-  }
-}*/
 const jwt = require('jsonwebtoken')
 const User = require('../models/User')
 
 exports.protect = async (req, res, next) => {
-  try {
-    const token =
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-        ? req.headers.authorization.split(' ')[1]
-        : req.cookies.token
+  let token
 
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'No autorizado' })
-    }
-
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
     try {
+      token = req.headers.authorization.split(' ')[1]
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
       req.user = await User.findById(decoded.id).select('-password')
+
       next()
     } catch (error) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Token no válido' })
+      console.error('Error en middleware de autenticación:', error)
+      return res.status(401).json({
+        success: false,
+        message: 'No autorizado, token inválido'
+      })
     }
-  } catch (error) {
-    res.status(500).json({
+  }
+
+  if (!token) {
+    return res.status(401).json({
       success: false,
-      message: 'Error en la autenticación',
-      error: error.message
+      message: 'No autorizado, no hay token'
     })
   }
 }
 
 exports.authorize = (...roles) => {
   return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
+      })
+    }
+
     if (!roles.includes(req.user.rol)) {
       return res.status(403).json({
         success: false,
-        message: `El rol ${req.user.rol} no está autorizado`
+        message: `El rol ${req.user.rol} no está autorizado para acceder a este recurso`
       })
     }
+
     next()
   }
 }

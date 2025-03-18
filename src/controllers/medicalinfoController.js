@@ -139,18 +139,39 @@ exports.getMedicalInfoByAdmin = async (req, res) => {
 
 exports.getAllMedicalInfo = async (req, res) => {
   try {
-    const medicalInfoList = await MedicalInfo.find().populate({
+    if (
+      req.user.rol !== 'admin' &&
+      req.user.rol !== 'administrador' &&
+      req.user.rol !== 'creador'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para acceder a esta información'
+      })
+    }
+
+    let medicalInfoList = await MedicalInfo.find().populate({
       path: 'user',
       select: 'nombre email rol avatar',
       model: 'User'
     })
 
+    const validRecords = medicalInfoList.filter((info) => info.user != null)
+    if (validRecords.length !== medicalInfoList.length) {
+      console.warn(
+        `Se encontraron ${
+          medicalInfoList.length - validRecords.length
+        } registros con referencias a usuarios inexistentes`
+      )
+      medicalInfoList = validRecords
+    }
+
     console.log(
       'Datos de usuarios recuperados:',
       medicalInfoList.map((info) => ({
-        userId: info.user._id,
-        nombre: info.user.nombre,
-        email: info.user.email
+        userId: info.user?._id,
+        nombre: info.user?.nombre,
+        email: info.user?.email
       }))
     )
 
