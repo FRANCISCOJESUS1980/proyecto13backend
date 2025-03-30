@@ -14,5 +14,10 @@ router.get('/stats/trends/:medida', protect, physicalStatsController.getTrends)
 
 router.post('/objetivos', protect, objetivosController.createObjetivo)
 router.get('/objetivos', protect, objetivosController.getObjetivos)
+router.delete(
+  '/objetivos/:objetivoId',
+  protect,
+  objetivosController.deleteObjetivo
+)
 
 module.exports = router

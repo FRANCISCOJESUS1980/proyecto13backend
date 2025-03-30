@@ -1,5 +1,6 @@
 const Product = require('../models/Product')
 const cloudinary = require('../config/cloudinary')
+const streamifier = require('streamifier')
 
 exports.getProducts = async (req, res) => {
   try {
@@ -92,6 +93,47 @@ exports.createProduct = async (req, res) => {
     })
   }
 }
+/*exports.createProduct = async (req, res) => {
+  try {
+    let imageUrl = ''
+
+    if (req.file) {
+      const streamUpload = (buffer) => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: 'productos' },
+            (error, result) => {
+              if (error) reject(error)
+              else resolve(result.secure_url)
+            }
+          )
+          streamifier.createReadStream(buffer).pipe(stream)
+        })
+      }
+
+      imageUrl = await streamUpload(req.file.buffer)
+    }
+
+    const newProduct = new Product({
+      ...req.body,
+      imagen: imageUrl
+    })
+
+    await newProduct.save()
+
+    res.status(201).json({
+      success: true,
+      data: newProduct,
+      message: 'Producto creado exitosamente'
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear el producto',
+      error: error.message
+    })
+  }
+}*/
 
 exports.updateProduct = async (req, res) => {
   try {
