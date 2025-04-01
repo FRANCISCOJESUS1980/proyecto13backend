@@ -13,6 +13,7 @@ const Message = require('./src/models/Chat')
 const physicalStatsRoutes = require('./src/routes/physicalStatsRoutes')
 const app = express()
 const server = http.createServer(app)
+const consentimientoRoutes = require('./src/routes/consentimientoRoutes')
 const io = new Server(server, {
   cors: {
     origin: 'http://localhost:5173',
@@ -64,6 +65,8 @@ app.use('/api/classes', require('./src/routes/classRoutes'))
 app.use('/api', require('./src/routes/productRoutes'))
 app.use('/api/medical-info', require('./src/routes/medicalinfoRoutes'))
 app.use('/api/physical', physicalStatsRoutes)
+app.use('/api/personal-records', require('./src/routes/personalRecordRoutes'))
+app.use('/api/consentimientos', consentimientoRoutes)
 
 app.get('/api/chat/messages', async (req, res) => {
   try {
