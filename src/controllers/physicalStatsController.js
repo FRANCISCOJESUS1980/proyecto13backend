@@ -1,4 +1,4 @@
-const { PhysicalStats, Objetivo } = require('../models/physicalStats')
+const { PhysicalStats, Objetivo } = require('../models/PhysicalStats')
 
 const physicalStatsController = {
   saveStats: async (req, res) => {
