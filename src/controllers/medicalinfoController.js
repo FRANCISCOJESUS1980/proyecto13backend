@@ -1,4 +1,4 @@
-const MedicalInfo = require('../models/MedicalInfo')
+const MedicalInfo = require('../models/Medicalinfo')
 const User = require('../models/User')
 
 exports.getMedicalInfo = async (req, res) => {
