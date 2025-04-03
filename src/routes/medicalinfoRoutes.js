@@ -4,7 +4,7 @@ const {
   updateMedicalInfo,
   getMedicalInfoByAdmin,
   getAllMedicalInfo
-} = require('../controllers/medicalInfoController')
+} = require('../controllers/medicalinfoController')
 const { protect, authorize } = require('../middlewares/authMiddleware')
 
 const router = express.Router()
