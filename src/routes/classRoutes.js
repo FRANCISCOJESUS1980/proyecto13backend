@@ -7,7 +7,9 @@ const {
   getClasses,
   getClassById,
   updateClass,
-  deleteClass
+  deleteClass,
+  cancelarUsuarioClase,
+  inscribirUsuarioClase
 } = require('../controllers/classController')
 const { protect, authorize } = require('../middlewares/authMiddleware')
 const validateClassId = require('../middlewares/validateClassId')
@@ -151,5 +153,8 @@ router.post('/:id/cancelar', protect, async (req, res) => {
     })
   }
 })
+
+router.post('/:id/inscribir-usuario', protect, inscribirUsuarioClase)
+router.post('/:id/cancelar-usuario', protect, cancelarUsuarioClase)
 
 module.exports = router

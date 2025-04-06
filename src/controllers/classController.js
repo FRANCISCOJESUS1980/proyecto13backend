@@ -1,4 +1,5 @@
 const Class = require('../models/Class')
+const User = require('../models/User')
 const cloudinary = require('../config/cloudinary')
 const fs = require('fs')
 
@@ -220,6 +221,135 @@ exports.deleteClass = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al eliminar la clase',
+      error: error.message
+    })
+  }
+}
+
+exports.inscribirUsuarioClase = async (req, res) => {
+  try {
+    const { userId } = req.body
+    const { id: claseId } = req.params
+
+    if (
+      req.user.rol !== 'admin' &&
+      req.user.rol !== 'creador' &&
+      req.user.rol !== 'monitor'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para realizar esta acción'
+      })
+    }
+
+    const usuario = await User.findById(userId)
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      })
+    }
+
+    let clase = await Class.findById(claseId)
+    if (!clase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Clase no encontrada'
+      })
+    }
+
+    if (clase.inscritos.includes(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El usuario ya está inscrito en esta clase'
+      })
+    }
+
+    if (clase.inscritos.length >= clase.capacidadMaxima) {
+      return res.status(400).json({
+        success: false,
+        message: 'La clase está llena'
+      })
+    }
+
+    clase.inscritos.push(userId)
+    await clase.save()
+
+    clase = await Class.findById(claseId)
+      .populate('inscritos', 'nombre email avatar rol imagen')
+      .populate('entrenador', 'nombre email avatar imagen')
+
+    res.status(200).json({
+      success: true,
+      message: 'Usuario inscrito correctamente',
+      data: clase
+    })
+  } catch (error) {
+    console.error('Error al inscribir usuario en clase:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al inscribir usuario en clase',
+      error: error.message
+    })
+  }
+}
+
+exports.cancelarUsuarioClase = async (req, res) => {
+  try {
+    const { userId } = req.body
+    const { id: claseId } = req.params
+
+    if (
+      req.user.rol !== 'admin' &&
+      req.user.rol !== 'creador' &&
+      req.user.rol !== 'monitor'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para realizar esta acción'
+      })
+    }
+
+    const usuario = await User.findById(userId)
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      })
+    }
+
+    let clase = await Class.findById(claseId)
+    if (!clase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Clase no encontrada'
+      })
+    }
+
+    if (!clase.inscritos.includes(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El usuario no está inscrito en esta clase'
+      })
+    }
+
+    clase.inscritos = clase.inscritos.filter((id) => id.toString() !== userId)
+    await clase.save()
+
+    clase = await Class.findById(claseId)
+      .populate('inscritos', 'nombre email avatar rol imagen')
+      .populate('entrenador', 'nombre email avatar imagen')
+
+    res.status(200).json({
+      success: true,
+      message: 'Inscripción cancelada correctamente',
+      data: clase
+    })
+  } catch (error) {
+    console.error('Error al cancelar inscripción:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al cancelar inscripción',
       error: error.message
     })
   }
