@@ -187,14 +187,14 @@ app.use(
 )
 app.set('trust proxy', 1)
 
-const limiter = rateLimit({
+/*const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
   message: 'Demasiadas solicitudes, intenta de nuevo más tarde',
   standardHeaders: true,
   legacyHeaders: false
 })
-app.use('/api/', limiter)
+app.use('/api/', limiter)*/
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
