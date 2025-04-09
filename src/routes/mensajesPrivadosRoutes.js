@@ -4,9 +4,11 @@ const { protect } = require('../middlewares/authMiddleware')
 const {
   obtenerConversaciones,
   obtenerMensajesConversacion,
+  obtenerConversacionUsuario,
   enviarMensaje,
   marcarComoLeidos,
-  eliminarMensaje
+  eliminarMensaje,
+  obtenerMensajesNoLeidos
 } = require('../controllers/mensajesPrivadosController')
 
 router.get('/', protect, obtenerConversaciones)
@@ -15,6 +17,8 @@ router.get(
   protect,
   obtenerMensajesConversacion
 )
+router.get('/usuario/:usuarioId', protect, obtenerConversacionUsuario)
+router.get('/no-leidos', protect, obtenerMensajesNoLeidos)
 router.post('/', protect, enviarMensaje)
 router.put('/marcar-leidos/:conversacionId', protect, marcarComoLeidos)
 router.delete('/:mensajeId', protect, eliminarMensaje)
