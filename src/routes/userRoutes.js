@@ -16,10 +16,10 @@ const {
   verificarCodigo
 } = require('../controllers/userController')
 
-router.use((req, res, next) => {
+/*router.use((req, res, next) => {
   res.header(
     'Access-Control-Allow-Origin',
-    'https://proyecto13backend.onrender.com/' /*'http://localhost:5173'*/
+    'https://proyecto13backend.onrender.com/' 'http://localhost:5173'
   )
   res.header('Access-Control-Allow-Credentials', 'true')
   res.header(
@@ -33,7 +33,7 @@ router.use((req, res, next) => {
   }
 
   next()
-})
+})*/
 
 router.get('/entrenadores', async (req, res) => {
   try {
