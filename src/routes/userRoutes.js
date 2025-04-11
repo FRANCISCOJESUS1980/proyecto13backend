@@ -19,7 +19,7 @@ const {
 router.use((req, res, next) => {
   res.header(
     'Access-Control-Allow-Origin',
-    'https://vercel.com/francisco-jesus-projects/proyecto13fronted' /*'http://localhost:5173'*/
+    'https://proyecto13backend.onrender.com/' /*'http://localhost:5173'*/
   )
   res.header('Access-Control-Allow-Credentials', 'true')
   res.header(
