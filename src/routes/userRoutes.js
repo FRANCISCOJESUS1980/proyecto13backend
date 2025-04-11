@@ -16,8 +16,8 @@ const {
   verificarCodigo
 } = require('../controllers/userController')
 
-/*router.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:5173')
+router.use((req, res, next) => {
+  /* res.header('Access-Control-Allow-Origin', 'http://localhost:5173')*/
   res.header('Access-Control-Allow-Credentials', 'true')
   res.header(
     'Access-Control-Allow-Headers',
@@ -30,7 +30,7 @@ const {
   }
 
   next()
-})*/
+})
 
 router.get('/entrenadores', async (req, res) => {
   try {
