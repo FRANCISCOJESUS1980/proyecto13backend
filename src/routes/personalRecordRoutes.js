@@ -8,8 +8,11 @@ const {
   updatePersonalRecord,
   deletePersonalRecord,
   getPersonalRecordStats,
-  getUniqueExercises
+  getUniqueExercises,
+  testRoute
 } = require('../controllers/personalRecordController')
+
+router.get('/test', testRoute)
 
 router.use(protect)
 

@@ -254,3 +254,11 @@ exports.getUniqueExercises = async (req, res) => {
     })
   }
 }
+
+exports.testRoute = (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Ruta de prueba de personal-records funcionando correctamente',
+    timestamp: new Date().toISOString()
+  })
+}
