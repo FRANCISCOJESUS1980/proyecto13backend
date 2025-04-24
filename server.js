@@ -16,6 +16,8 @@ const server = http.createServer(app)
 const consentimientoRoutes = require('./src/routes/consentimientoRoutes')
 const chatRoutes = require('./src/routes/chatRoutes')
 const mensajesPrivadosRoutes = require('./src/routes/mensajesPrivadosRoutes')
+const pagosRoutes = require('./src/routes/pagosRoutes')
+const carritoRoutes = require('./src/routes/carritoRoutes')
 
 const io = new Server(server, {
   cors: {
@@ -71,6 +73,8 @@ app.use('/api/physical', physicalStatsRoutes)
 app.use('/api/personal-records', require('./src/routes/personalRecordRoutes'))
 app.use('/api/consentimientos', consentimientoRoutes)
 app.use('/api/mensajes-privados', mensajesPrivadosRoutes)
+app.use('/api/pagos', pagosRoutes)
+app.use('/api/carrito', carritoRoutes)
 
 app.use((req, res, next) => {
   req.io = io
