@@ -8,7 +8,8 @@ const {
   enviarMensaje,
   marcarComoLeidos,
   eliminarMensaje,
-  obtenerMensajesNoLeidos
+  obtenerMensajesNoLeidos,
+  actualizarMensaje
 } = require('../controllers/mensajesPrivadosController')
 
 router.get('/', protect, obtenerConversaciones)
@@ -21,6 +22,7 @@ router.get('/usuario/:usuarioId', protect, obtenerConversacionUsuario)
 router.get('/no-leidos', protect, obtenerMensajesNoLeidos)
 router.post('/', protect, enviarMensaje)
 router.put('/marcar-leidos/:conversacionId', protect, marcarComoLeidos)
+router.put('/:mensajeId', protect, actualizarMensaje)
 router.delete('/:mensajeId', protect, eliminarMensaje)
 
 module.exports = router

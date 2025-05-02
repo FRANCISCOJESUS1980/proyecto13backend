@@ -27,6 +27,14 @@ const mensajePrivadoSchema = new mongoose.Schema({
   leido: {
     type: Boolean,
     default: false
+  },
+  editado: {
+    type: Boolean,
+    default: false
+  },
+  fechaEdicion: {
+    type: Date,
+    default: null
   }
 })
 

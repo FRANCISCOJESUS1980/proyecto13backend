@@ -369,3 +369,62 @@ exports.obtenerMensajesNoLeidos = async (req, res) => {
     })
   }
 }
+
+exports.actualizarMensaje = async (req, res) => {
+  try {
+    const userId = req.user._id
+    const { mensajeId } = req.params
+    const { mensaje } = req.body
+
+    console.log('Solicitud de actualización recibida:')
+    console.log('- ID del mensaje:', mensajeId)
+    console.log('- ID del usuario:', userId)
+    console.log('- Nuevo texto:', mensaje)
+
+    if (!mensaje || mensaje.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'El contenido del mensaje no puede estar vacío'
+      })
+    }
+
+    const mensajeExistente = await MensajePrivado.findOne({
+      _id: mensajeId,
+      remitente: userId
+    })
+
+    if (!mensajeExistente) {
+      console.log('Mensaje no encontrado o usuario no autorizado')
+      return res.status(404).json({
+        success: false,
+        message: 'Mensaje no encontrado o no tienes permiso para editarlo'
+      })
+    }
+
+    console.log('Mensaje encontrado:', mensajeExistente)
+
+    mensajeExistente.mensaje = mensaje
+    mensajeExistente.editado = true
+    mensajeExistente.fechaEdicion = new Date()
+
+    await mensajeExistente.save()
+    console.log('Mensaje actualizado correctamente')
+
+    const mensajeActualizado = await MensajePrivado.findById(mensajeId)
+      .populate('remitente', 'nombre email avatar imagen rol')
+      .populate('destinatario', 'nombre email avatar imagen rol')
+
+    res.status(200).json({
+      success: true,
+      message: 'Mensaje actualizado correctamente',
+      data: mensajeActualizado
+    })
+  } catch (error) {
+    console.error('Error al actualizar mensaje:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar mensaje',
+      error: error.message
+    })
+  }
+}
