@@ -5,7 +5,8 @@ const {
   crearConsentimiento,
   obtenerConsentimientos,
   obtenerConsentimientoPorUsuario,
-  eliminarConsentimiento
+  eliminarConsentimiento,
+  verificarConsentimiento
 } = require('../controllers/consentimientoController')
 
 router.post('/', protect, crearConsentimiento)
@@ -25,5 +26,7 @@ router.delete(
   authorize('administrador', 'admin', 'creador'),
   eliminarConsentimiento
 )
+
+router.get('/verificar/:userId', protect, verificarConsentimiento)
 
 module.exports = router
