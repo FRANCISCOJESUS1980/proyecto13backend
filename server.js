@@ -22,7 +22,7 @@ const carritoRoutes = require('./src/routes/carritoRoutes')
 const io = new Server(server, {
   cors: {
     origin:
-      'https://proyecto13fronted.vercel.app' /* 'http://localhost:5173',*/,
+      'https://proyecto13fronted.vercel.app' /*  'http://localhost:5173'*/,
     methods: ['GET', 'POST'],
     credentials: true
   }
