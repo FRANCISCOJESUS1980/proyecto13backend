@@ -1,5 +1,6 @@
 const Class = require('../models/Class')
 const User = require('../models/User')
+const Bono = require('../models/Bono')
 const cloudinary = require('../config/cloudinary')
 const fs = require('fs')
 
@@ -231,16 +232,10 @@ exports.inscribirUsuarioClase = async (req, res) => {
     const { userId } = req.body
     const { id: claseId } = req.params
 
-    if (
-      req.user.rol !== 'admin' &&
-      req.user.rol !== 'creador' &&
-      req.user.rol !== 'monitor'
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para realizar esta acción'
-      })
-    }
+    const esAdmin =
+      req.user.rol === 'admin' ||
+      req.user.rol === 'creador' ||
+      req.user.rol === 'monitor'
 
     const usuario = await User.findById(userId)
     if (!usuario) {
@@ -272,6 +267,60 @@ exports.inscribirUsuarioClase = async (req, res) => {
       })
     }
 
+    if (!esAdmin) {
+      const usuarioConBono = await User.findById(userId).populate('bonoActivo')
+
+      if (!usuarioConBono.bonoActivo) {
+        return res.status(400).json({
+          success: false,
+          message: 'No tienes un bono activo para inscribirte a clases'
+        })
+      }
+
+      const bono = usuarioConBono.bonoActivo
+
+      if (bono.estado !== 'activo') {
+        return res.status(400).json({
+          success: false,
+          message: `Tu bono está ${bono.estado}. Contacta con administración.`
+        })
+      }
+
+      if (new Date() > new Date(bono.fechaFin)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Tu bono ha expirado. Contacta con administración para renovarlo.'
+        })
+      }
+
+      if (bono.tipo !== 'Ilimitado' && bono.sesionesRestantes <= 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Has agotado todas tus sesiones. Contacta con administración para añadir más.'
+        })
+      }
+
+      if (bono.tipo !== 'Ilimitado') {
+        bono.sesionesRestantes -= 1
+        await bono.save()
+      }
+
+      clase.historialInscripciones.push({
+        usuario: userId,
+        fechaInscripcion: new Date(),
+        estado: 'activa',
+        bonoUtilizado: bono._id
+      })
+    } else {
+      clase.historialInscripciones.push({
+        usuario: userId,
+        fechaInscripcion: new Date(),
+        estado: 'activa'
+      })
+    }
+
     clase.inscritos.push(userId)
     await clase.save()
 
@@ -299,16 +348,10 @@ exports.cancelarUsuarioClase = async (req, res) => {
     const { userId } = req.body
     const { id: claseId } = req.params
 
-    if (
-      req.user.rol !== 'admin' &&
-      req.user.rol !== 'creador' &&
-      req.user.rol !== 'monitor'
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para realizar esta acción'
-      })
-    }
+    const esAdmin =
+      req.user.rol === 'admin' ||
+      req.user.rol === 'creador' ||
+      req.user.rol === 'monitor'
 
     const usuario = await User.findById(userId)
     if (!usuario) {
@@ -331,6 +374,36 @@ exports.cancelarUsuarioClase = async (req, res) => {
         success: false,
         message: 'El usuario no está inscrito en esta clase'
       })
+    }
+
+    const inscripcionIndex = clase.historialInscripciones.findIndex(
+      (inscripcion) =>
+        inscripcion.usuario.toString() === userId.toString() &&
+        inscripcion.estado === 'activa'
+    )
+
+    if (inscripcionIndex !== -1) {
+      const inscripcion = clase.historialInscripciones[inscripcionIndex]
+      inscripcion.estado = 'cancelada'
+      inscripcion.fechaCancelacion = new Date()
+
+      if (!esAdmin && inscripcion.bonoUtilizado) {
+        const usuarioConBono = await User.findById(userId).populate(
+          'bonoActivo'
+        )
+
+        if (
+          usuarioConBono.bonoActivo &&
+          usuarioConBono.bonoActivo._id.toString() ===
+            inscripcion.bonoUtilizado.toString() &&
+          usuarioConBono.bonoActivo.estado === 'activo' &&
+          usuarioConBono.bonoActivo.tipo !== 'Ilimitado'
+        ) {
+          usuarioConBono.bonoActivo.sesionesRestantes += 1
+          await usuarioConBono.bonoActivo.save()
+          inscripcion.sesionDevuelta = true
+        }
+      }
     }
 
     clase.inscritos = clase.inscritos.filter((id) => id.toString() !== userId)

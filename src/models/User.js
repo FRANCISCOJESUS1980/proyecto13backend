@@ -37,6 +37,16 @@ const UserSchema = new mongoose.Schema(
       enum: ['activo', 'inactivo', 'suspendido'],
       default: 'activo'
     },
+    bonoActivo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Bono'
+    },
+    historialBonos: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Bono'
+      }
+    ],
     membresia: {
       tipo: {
         type: String,

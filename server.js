@@ -18,6 +18,7 @@ const chatRoutes = require('./src/routes/chatRoutes')
 const mensajesPrivadosRoutes = require('./src/routes/mensajesPrivadosRoutes')
 const pagosRoutes = require('./src/routes/pagosRoutes')
 const carritoRoutes = require('./src/routes/carritoRoutes')
+const bonoRoutes = require('./src/routes/bonoRoutes')
 
 const io = new Server(server, {
   cors: {
@@ -39,7 +40,7 @@ app.use(cookieParser())
 
 app.use(
   cors({
-    origin: 'https://proyecto13fronted.vercel.app' /*'http://localhost:5173'*/,
+    origin: 'https://proyecto13fronted.vercel.app' /* 'http://localhost:5173'*/,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -63,6 +64,8 @@ app.use('/api/', limiter)
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
+app.use('/api/bonos', require('./src/routes/bonoRoutes'))
+
 connectDB()
 
 app.use('/api/auth', require('./src/routes/userRoutes'))
@@ -76,6 +79,7 @@ app.use('/api/consentimientos', consentimientoRoutes)
 app.use('/api/mensajes-privados', mensajesPrivadosRoutes)
 app.use('/api/pagos', pagosRoutes)
 app.use('/api/carrito', carritoRoutes)
+app.use('/api/bonos', bonoRoutes)
 
 app.use((req, res, next) => {
   req.io = io

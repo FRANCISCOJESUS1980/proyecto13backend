@@ -2,46 +2,69 @@ const mongoose = require('mongoose')
 
 const BonoSchema = new mongoose.Schema(
   {
-    nombre: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    sesiones: {
-      type: mongoose.Schema.Types.Mixed,
+    usuario: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       required: true
-    },
-    descripcion: {
-      type: String,
-      trim: true
-    },
-    precio: {
-      type: Number,
-      required: true
-    },
-    caracteristicas: {
-      type: [String],
-      default: []
-    },
-    popular: {
-      type: Boolean,
-      default: false
     },
     tipo: {
       type: String,
-      enum: ['mensual', 'especial', 'drop-in'],
+      required: true,
+      enum: [
+        '8 Sesiones',
+        '10 Sesiones',
+        '12 Sesiones',
+        '16 Sesiones',
+        '20 Sesiones',
+        'Ilimitado',
+        'Bono 5 sesiones',
+        'Curso de iniciación + 2 meses',
+        'Drop in'
+      ]
+    },
+    sesionesTotal: {
+      type: Number,
       required: true
     },
-    limiteDiario: {
+    sesionesRestantes: {
       type: Number,
-      default: null
+      required: true
     },
-    activo: {
-      type: Boolean,
-      default: true
+    fechaInicio: {
+      type: Date,
+      required: true,
+      default: Date.now
+    },
+    fechaFin: {
+      type: Date,
+      required: true
+    },
+    estado: {
+      type: String,
+      enum: ['activo', 'pausado', 'finalizado'],
+      default: 'activo'
+    },
+    motivoPausa: {
+      type: String
+    },
+    fechaPausa: {
+      type: Date
+    },
+    historialPausas: [
+      {
+        fechaInicio: Date,
+        fechaFin: Date,
+        motivo: String
+      }
+    ],
+    precio: {
+      type: Number,
+      required: true
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true
+  }
 )
 
 module.exports = mongoose.model('Bono', BonoSchema)

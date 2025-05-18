@@ -80,7 +80,36 @@ const ClassSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: false
-    }
+    },
+    historialInscripciones: [
+      {
+        usuario: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User'
+        },
+        fechaInscripcion: {
+          type: Date,
+          default: Date.now
+        },
+        fechaCancelacion: {
+          type: Date
+        },
+        sesionDevuelta: {
+          type: Boolean,
+          default: false
+        },
+        estado: {
+          type: String,
+          enum: ['activa', 'completada', 'cancelada'],
+          default: 'activa'
+        },
+        bonoUtilizado: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Bono',
+          default: null
+        }
+      }
+    ]
   },
   {
     timestamps: true
@@ -98,5 +127,11 @@ ClassSchema.pre('save', function (next) {
 
   next()
 })
+
+ClassSchema.index({ diaSemana: 1 })
+ClassSchema.index({ categoria: 1 })
+ClassSchema.index({ nivel: 1 })
+ClassSchema.index({ esFechaEspecifica: 1 })
+ClassSchema.index({ fecha: 1 })
 
 module.exports = mongoose.model('Class', ClassSchema)
