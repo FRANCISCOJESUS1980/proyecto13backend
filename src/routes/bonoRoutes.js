@@ -8,13 +8,16 @@ const {
   reactivarBono,
   añadirSesiones,
   obtenerHistorialBonos,
-  obtenerBonoActual
+  obtenerBonoActual,
+  obtenerTodosLosBonos
 } = require('../controllers/bonoController')
 
 router.get('/me', protect, obtenerBonoActual)
 
 router.use(protect)
 router.use(authorize('admin', 'creador', 'monitor'))
+
+router.get('/', obtenerTodosLosBonos)
 
 router.post('/', crearBono)
 router.get('/usuario/:userId', obtenerBonoUsuario)

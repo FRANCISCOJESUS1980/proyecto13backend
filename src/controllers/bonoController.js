@@ -292,3 +292,27 @@ exports.obtenerHistorialBonos = async (req, res) => {
     })
   }
 }
+
+exports.obtenerTodosLosBonos = async (req, res) => {
+  try {
+    const bonos = await Bono.find().populate({
+      path: 'usuario',
+      select: 'nombre email'
+    })
+
+    console.log(`Encontrados ${bonos.length} bonos`)
+
+    res.status(200).json({
+      success: true,
+      count: bonos.length,
+      data: bonos
+    })
+  } catch (error) {
+    console.error('Error al obtener todos los bonos:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener todos los bonos',
+      error: error.message
+    })
+  }
+}
