@@ -16,15 +16,32 @@ const getTransporter = () => {
 
   transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT || 587,
+    port: parseInt(process.env.EMAIL_PORT) || 587,
     secure: process.env.EMAIL_SECURE === 'true',
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
+      pass: process.env.EMAIL_PASSWORD.replace(/\s/g, '')
+    },
+    tls: {
+      rejectUnauthorized: false
     }
   })
 
   return transporter
+}
+
+const verificarConexion = async () => {
+  try {
+    const transport = getTransporter()
+    if (!transport) return false
+
+    await transport.verify()
+    console.log('✅ Conexión SMTP verificada correctamente')
+    return true
+  } catch (error) {
+    console.error('❌ Error en la conexión SMTP:', error.message)
+    return false
+  }
 }
 
 exports.enviarEmail = async ({ destinatario, asunto, contenido }) => {
@@ -38,6 +55,11 @@ exports.enviarEmail = async ({ destinatario, asunto, contenido }) => {
       throw new Error('No se pudo inicializar el transporte de correo')
     }
 
+    const conexionOk = await verificarConexion()
+    if (!conexionOk) {
+      throw new Error('No se pudo establecer conexión con el servidor SMTP')
+    }
+
     const mailOptions = {
       from: `"AderCrossFit" <${
         process.env.EMAIL_FROM || process.env.EMAIL_USER
@@ -47,9 +69,7 @@ exports.enviarEmail = async ({ destinatario, asunto, contenido }) => {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
           <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${
-              process.env.FRONTEND_URL || 'https://adercrossfit.com'
-            }/logo.png" alt="AderCrossFit Logo" style="max-width: 150px;">
+            <h2 style="color: #333;">AderCrossFit</h2>
           </div>
           ${contenido}
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 12px;">
@@ -59,12 +79,14 @@ exports.enviarEmail = async ({ destinatario, asunto, contenido }) => {
       `
     }
 
-    console.log(`Intentando enviar email a: ${destinatario}`)
+    console.log(`📧 Intentando enviar email a: ${destinatario}`)
     const info = await transport.sendMail(mailOptions)
-    console.log(`Email enviado a ${destinatario}: ${info.messageId}`)
+    console.log(`✅ Email enviado a ${destinatario}: ${info.messageId}`)
     return info
   } catch (error) {
-    console.error(`Error al enviar email a ${destinatario}:`, error)
+    console.error(`❌ Error al enviar email a ${destinatario}:`, error.message)
     throw error
   }
 }
+
+exports.verificarConexion = verificarConexion
