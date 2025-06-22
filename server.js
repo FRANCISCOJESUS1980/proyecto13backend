@@ -29,11 +29,6 @@ const io = new Server(server, {
   }
 })
 
-const uploadDir = path.join(__dirname, 'uploads')
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true })
-}
-
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
@@ -61,8 +56,6 @@ const limiter = rateLimit({
   legacyHeaders: false
 })
 app.use('/api/', limiter)
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 app.use('/api/bonos', require('./src/routes/bonoRoutes'))
 

@@ -14,7 +14,7 @@ const {
 } = require('../controllers/productController')
 const { protect, authorize } = require('../middlewares/authMiddleware')
 const validateProductId = require('../middlewares/validateProductId')
-const upload = require('../config/multer')
+const { uploadCloudinary } = require('../config/multer')
 
 router.get('/productos/search', searchProducts)
 router.get('/productos/categoria/:categoria', getProductsByCategory)
@@ -31,7 +31,7 @@ router.get(
 
 router.post(
   '/productos',
-  upload.single('imagen'),
+  uploadCloudinary.single('imagen'),
   authorize('admin', 'creador'),
   createProduct
 )
@@ -47,7 +47,7 @@ router.get('/productos/:id', validateProductId, getProductById)
 router.put(
   '/productos/:id',
   validateProductId,
-  upload.single('imagen'),
+  uploadCloudinary.single('imagen'),
   authorize('admin', 'creador'),
   updateProduct
 )

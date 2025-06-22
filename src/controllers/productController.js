@@ -2,6 +2,26 @@ const Product = require('../models/Product')
 const cloudinary = require('../config/cloudinary')
 const streamifier = require('streamifier')
 
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'productos',
+        resource_type: 'image'
+      },
+      (error, result) => {
+        if (error) {
+          reject(error)
+        } else {
+          resolve(result)
+        }
+      }
+    )
+
+    streamifier.createReadStream(buffer).pipe(uploadStream)
+  })
+}
+
 exports.getProducts = async (req, res) => {
   try {
     const {
@@ -182,10 +202,17 @@ exports.createProduct = async (req, res) => {
     let imageUrl = ''
 
     if (req.file) {
-      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'productos'
-      })
-      imageUrl = uploadResult.secure_url
+      try {
+        const uploadResult = await uploadToCloudinary(req.file.buffer)
+        imageUrl = uploadResult.secure_url
+      } catch (uploadError) {
+        console.error('Error al subir imagen a Cloudinary:', uploadError)
+        return res.status(500).json({
+          success: false,
+          message: 'Error al subir la imagen',
+          error: uploadError.message
+        })
+      }
     }
 
     const newProduct = new Product({
@@ -201,6 +228,7 @@ exports.createProduct = async (req, res) => {
       message: 'Producto creado exitosamente'
     })
   } catch (error) {
+    console.error('Error al crear producto:', error)
     res.status(500).json({
       success: false,
       message: 'Error al crear el producto',
@@ -223,15 +251,25 @@ exports.updateProduct = async (req, res) => {
     let imageUrl = product.imagen
 
     if (req.file) {
-      if (product.imagen) {
-        const publicId = product.imagen.split('/').pop().split('.')[0]
-        await cloudinary.uploader.destroy(`productos/${publicId}`)
-      }
+      try {
+        if (product.imagen) {
+          const urlParts = product.imagen.split('/')
+          const publicIdWithExtension = urlParts[urlParts.length - 1]
+          const publicId = `productos/${publicIdWithExtension.split('.')[0]}`
 
-      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'productos'
-      })
-      imageUrl = uploadResult.secure_url
+          await cloudinary.uploader.destroy(publicId)
+        }
+
+        const uploadResult = await uploadToCloudinary(req.file.buffer)
+        imageUrl = uploadResult.secure_url
+      } catch (uploadError) {
+        console.error('Error al actualizar imagen en Cloudinary:', uploadError)
+        return res.status(500).json({
+          success: false,
+          message: 'Error al actualizar la imagen',
+          error: uploadError.message
+        })
+      }
     }
 
     const updateData = {
@@ -279,6 +317,21 @@ exports.deleteProduct = async (req, res) => {
         success: false,
         message: 'Producto no encontrado'
       })
+    }
+
+    if (product.imagen) {
+      try {
+        const urlParts = product.imagen.split('/')
+        const publicIdWithExtension = urlParts[urlParts.length - 1]
+        const publicId = `productos/${publicIdWithExtension.split('.')[0]}`
+
+        await cloudinary.uploader.destroy(publicId)
+      } catch (cloudinaryError) {
+        console.error(
+          'Error al eliminar imagen de Cloudinary:',
+          cloudinaryError
+        )
+      }
     }
 
     await Product.findByIdAndDelete(req.params.id)
