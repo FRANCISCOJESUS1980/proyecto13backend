@@ -107,6 +107,11 @@ const ClassSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: 'Bono',
           default: null
+        },
+        tipoSesion: {
+          type: String,
+          enum: ['bono', 'sesiones_libres', 'admin'],
+          default: null
         }
       }
     ]

@@ -19,6 +19,7 @@ const mensajesPrivadosRoutes = require('./src/routes/mensajesPrivadosRoutes')
 const pagosRoutes = require('./src/routes/pagosRoutes')
 const carritoRoutes = require('./src/routes/carritoRoutes')
 const bonoRoutes = require('./src/routes/bonoRoutes')
+const sesionesLibresRoutes = require('./src/routes/sesionesLibresRoutes')
 
 const io = new Server(server, {
   cors: {
@@ -73,6 +74,7 @@ app.use('/api/mensajes-privados', mensajesPrivadosRoutes)
 app.use('/api/pagos', pagosRoutes)
 app.use('/api/carrito', carritoRoutes)
 app.use('/api/bonos', bonoRoutes)
+app.use('/api/sesiones-libres', sesionesLibresRoutes)
 
 app.use((req, res, next) => {
   req.io = io
