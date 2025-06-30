@@ -87,9 +87,12 @@ exports.verificarCodigo = async (req, res) => {
     const { codigo, codigoOriginal, debug } = req.body
 
     console.log('=== DEBUG VERIFICACIÓN CÓDIGO ===')
+    console.log('Headers recibidos:', JSON.stringify(req.headers))
+    console.log('Body completo:', JSON.stringify(req.body))
     console.log('Código original recibido:', JSON.stringify(codigoOriginal))
     console.log('Código normalizado recibido:', JSON.stringify(codigo))
-    console.log('Info debug completa:', debug)
+    console.log('Info debug completa:', JSON.stringify(debug))
+    console.log('IP del cliente:', req.ip || req.connection.remoteAddress)
 
     const normalizeCode = (code) => {
       if (!code) return ''
@@ -108,11 +111,55 @@ exports.verificarCodigo = async (req, res) => {
     const codigoAdmin = normalizeCode(process.env.CODIGO_SECRETO_ADMIN)
     const codigoMonitor = normalizeCode(process.env.CODIGO_SECRETO_MONITOR)
 
-    console.log('=== COMPARACIÓN ===')
-    console.log('Código recibido final:', JSON.stringify(codigoRecibido))
-    console.log('Código creador esperado:', JSON.stringify(codigoCreador))
-    console.log('Código admin esperado:', JSON.stringify(codigoAdmin))
-    console.log('Código monitor esperado:', JSON.stringify(codigoMonitor))
+    console.log('=== COMPARACIÓN DETALLADA ===')
+    console.log(
+      'Código recibido:',
+      JSON.stringify(codigoRecibido),
+      'Longitud:',
+      codigoRecibido.length
+    )
+    console.log(
+      'Código creador:',
+      JSON.stringify(codigoCreador),
+      'Longitud:',
+      codigoCreador.length
+    )
+    console.log(
+      'Código admin:',
+      JSON.stringify(codigoAdmin),
+      'Longitud:',
+      codigoAdmin.length
+    )
+    console.log(
+      'Código monitor:',
+      JSON.stringify(codigoMonitor),
+      'Longitud:',
+      codigoMonitor.length
+    )
+
+    console.log('=== COMPARACIÓN BYTE POR BYTE ===')
+    console.log('¿Igual a creador?', codigoRecibido === codigoCreador)
+    console.log('¿Igual a admin?', codigoRecibido === codigoAdmin)
+    console.log('¿Igual a monitor?', codigoRecibido === codigoMonitor)
+
+    if (codigoRecibido.length > 0) {
+      console.log('Caracteres del código recibido:')
+      for (let i = 0; i < codigoRecibido.length; i++) {
+        console.log(
+          `  [${i}]: "${codigoRecibido[i]}" (${codigoRecibido.charCodeAt(i)})`
+        )
+      }
+    }
+
+    if (codigoAdmin.length > 0) {
+      console.log('Caracteres del código admin esperado:')
+      for (let i = 0; i < codigoAdmin.length; i++) {
+        console.log(
+          `  [${i}]: "${codigoAdmin[i]}" (${codigoAdmin.charCodeAt(i)})`
+        )
+      }
+    }
+
     console.log('=== FIN DEBUG ===')
 
     if (codigoRecibido === codigoCreador) {
@@ -148,7 +195,15 @@ exports.verificarCodigo = async (req, res) => {
 
     return res.status(403).json({
       success: false,
-      message: 'Código inválido'
+      message: 'Código inválido',
+      debug: {
+        codigoRecibido,
+        codigosEsperados: {
+          creador: codigoCreador,
+          admin: codigoAdmin,
+          monitor: codigoMonitor
+        }
+      }
     })
   } catch (error) {
     console.error('Error en verificarCodigo:', error)
