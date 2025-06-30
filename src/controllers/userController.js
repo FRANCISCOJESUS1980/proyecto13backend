@@ -11,12 +11,32 @@ const generateToken = (id) => {
 exports.verificarCodigo = async (req, res) => {
   try {
     const { codigo } = req.body
-    console.log('Código recibido en el servidor:', codigo)
 
-    const codigoRecibido = String(codigo).trim()
-    const codigoCreador = String(process.env.CODIGO_SECRETO_CREADOR).trim()
-    const codigoAdmin = String(process.env.CODIGO_SECRETO_ADMIN).trim()
-    const codigoMonitor = String(process.env.CODIGO_SECRETO_MONITOR).trim()
+    console.log('Código recibido:', JSON.stringify(codigo))
+
+    const normalizeCode = (code) => {
+      if (!code) return ''
+      return String(code)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+    }
+
+    const codigoRecibido = normalizeCode(codigo)
+    const codigoCreador = normalizeCode(process.env.CODIGO_SECRETO_CREADOR)
+    const codigoAdmin = normalizeCode(process.env.CODIGO_SECRETO_ADMIN)
+    const codigoMonitor = normalizeCode(process.env.CODIGO_SECRETO_MONITOR)
+
+    console.log('Comparando:', {
+      recibido: codigoRecibido,
+      esperados: {
+        creador: codigoCreador,
+        admin: codigoAdmin,
+        monitor: codigoMonitor
+      }
+    })
 
     if (codigoRecibido === codigoCreador) {
       const existingCreator = await User.findOne({ rol: 'creador' })
@@ -26,7 +46,6 @@ exports.verificarCodigo = async (req, res) => {
           message: 'Ya existe un usuario con rol de creador'
         })
       }
-
       return res.status(200).json({
         success: true,
         message: 'Código válido para creador',
