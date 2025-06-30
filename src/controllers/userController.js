@@ -7,36 +7,16 @@ const fs = require('fs').promises
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
 }
-
-/*exports.verificarCodigo = async (req, res) => {
+exports.verificarCodigo = async (req, res) => {
   try {
     const { codigo } = req.body
 
-    console.log('Código recibido:', JSON.stringify(codigo))
+    console.log('Código recibido en el servidor:', codigo)
 
-    const normalizeCode = (code) => {
-      if (!code) return ''
-      return String(code)
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-    }
-
-    const codigoRecibido = normalizeCode(codigo)
-    const codigoCreador = normalizeCode(process.env.CODIGO_SECRETO_CREADOR)
-    const codigoAdmin = normalizeCode(process.env.CODIGO_SECRETO_ADMIN)
-    const codigoMonitor = normalizeCode(process.env.CODIGO_SECRETO_MONITOR)
-
-    console.log('Comparando:', {
-      recibido: codigoRecibido,
-      esperados: {
-        creador: codigoCreador,
-        admin: codigoAdmin,
-        monitor: codigoMonitor
-      }
-    })
+    const codigoRecibido = String(codigo).trim()
+    const codigoCreador = String(process.env.CODIGO_SECRETO_CREADOR).trim()
+    const codigoAdmin = String(process.env.CODIGO_SECRETO_ADMIN).trim()
+    const codigoMonitor = String(process.env.CODIGO_SECRETO_MONITOR).trim()
 
     if (codigoRecibido === codigoCreador) {
       const existingCreator = await User.findOne({ rol: 'creador' })
@@ -72,138 +52,6 @@ const generateToken = (id) => {
     return res.status(403).json({
       success: false,
       message: 'Código inválido'
-    })
-  } catch (error) {
-    console.error('Error en verificarCodigo:', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Error al verificar el código',
-      error: error.message
-    })
-  }
-}*/
-exports.verificarCodigo = async (req, res) => {
-  try {
-    const { codigo, codigoOriginal, debug } = req.body
-
-    console.log('=== DEBUG VERIFICACIÓN CÓDIGO ===')
-    console.log('Headers recibidos:', JSON.stringify(req.headers))
-    console.log('Body completo:', JSON.stringify(req.body))
-    console.log('Código original recibido:', JSON.stringify(codigoOriginal))
-    console.log('Código normalizado recibido:', JSON.stringify(codigo))
-    console.log('Info debug completa:', JSON.stringify(debug))
-    console.log('IP del cliente:', req.ip || req.connection.remoteAddress)
-
-    const normalizeCode = (code) => {
-      if (!code) return ''
-      return String(code)
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '')
-        .replace(/[^\w]/g, '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]/gi, '')
-    }
-
-    const codigoRecibido = normalizeCode(codigo)
-    const codigoCreador = normalizeCode(process.env.CODIGO_SECRETO_CREADOR)
-    const codigoAdmin = normalizeCode(process.env.CODIGO_SECRETO_ADMIN)
-    const codigoMonitor = normalizeCode(process.env.CODIGO_SECRETO_MONITOR)
-
-    console.log('=== COMPARACIÓN DETALLADA ===')
-    console.log(
-      'Código recibido:',
-      JSON.stringify(codigoRecibido),
-      'Longitud:',
-      codigoRecibido.length
-    )
-    console.log(
-      'Código creador:',
-      JSON.stringify(codigoCreador),
-      'Longitud:',
-      codigoCreador.length
-    )
-    console.log(
-      'Código admin:',
-      JSON.stringify(codigoAdmin),
-      'Longitud:',
-      codigoAdmin.length
-    )
-    console.log(
-      'Código monitor:',
-      JSON.stringify(codigoMonitor),
-      'Longitud:',
-      codigoMonitor.length
-    )
-
-    console.log('=== COMPARACIÓN BYTE POR BYTE ===')
-    console.log('¿Igual a creador?', codigoRecibido === codigoCreador)
-    console.log('¿Igual a admin?', codigoRecibido === codigoAdmin)
-    console.log('¿Igual a monitor?', codigoRecibido === codigoMonitor)
-
-    if (codigoRecibido.length > 0) {
-      console.log('Caracteres del código recibido:')
-      for (let i = 0; i < codigoRecibido.length; i++) {
-        console.log(
-          `  [${i}]: "${codigoRecibido[i]}" (${codigoRecibido.charCodeAt(i)})`
-        )
-      }
-    }
-
-    if (codigoAdmin.length > 0) {
-      console.log('Caracteres del código admin esperado:')
-      for (let i = 0; i < codigoAdmin.length; i++) {
-        console.log(
-          `  [${i}]: "${codigoAdmin[i]}" (${codigoAdmin.charCodeAt(i)})`
-        )
-      }
-    }
-
-    console.log('=== FIN DEBUG ===')
-
-    if (codigoRecibido === codigoCreador) {
-      const existingCreator = await User.findOne({ rol: 'creador' })
-      if (existingCreator) {
-        return res.status(403).json({
-          success: false,
-          message: 'Ya existe un usuario con rol de creador'
-        })
-      }
-      return res.status(200).json({
-        success: true,
-        message: 'Código válido para creador',
-        rol: 'creador'
-      })
-    }
-
-    if (codigoRecibido === codigoAdmin) {
-      return res.status(200).json({
-        success: true,
-        message: 'Código válido para administrador',
-        rol: 'admin'
-      })
-    }
-
-    if (codigoRecibido === codigoMonitor) {
-      return res.status(200).json({
-        success: true,
-        message: 'Código válido para monitor',
-        rol: 'monitor'
-      })
-    }
-
-    return res.status(403).json({
-      success: false,
-      message: 'Código inválido',
-      debug: {
-        codigoRecibido,
-        codigosEsperados: {
-          creador: codigoCreador,
-          admin: codigoAdmin,
-          monitor: codigoMonitor
-        }
-      }
     })
   } catch (error) {
     console.error('Error en verificarCodigo:', error)
