@@ -8,7 +8,7 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
 }
 
-exports.verificarCodigo = async (req, res) => {
+/*exports.verificarCodigo = async (req, res) => {
   try {
     const { codigo } = req.body
 
@@ -37,6 +37,83 @@ exports.verificarCodigo = async (req, res) => {
         monitor: codigoMonitor
       }
     })
+
+    if (codigoRecibido === codigoCreador) {
+      const existingCreator = await User.findOne({ rol: 'creador' })
+      if (existingCreator) {
+        return res.status(403).json({
+          success: false,
+          message: 'Ya existe un usuario con rol de creador'
+        })
+      }
+      return res.status(200).json({
+        success: true,
+        message: 'Código válido para creador',
+        rol: 'creador'
+      })
+    }
+
+    if (codigoRecibido === codigoAdmin) {
+      return res.status(200).json({
+        success: true,
+        message: 'Código válido para administrador',
+        rol: 'admin'
+      })
+    }
+
+    if (codigoRecibido === codigoMonitor) {
+      return res.status(200).json({
+        success: true,
+        message: 'Código válido para monitor',
+        rol: 'monitor'
+      })
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: 'Código inválido'
+    })
+  } catch (error) {
+    console.error('Error en verificarCodigo:', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Error al verificar el código',
+      error: error.message
+    })
+  }
+}*/
+exports.verificarCodigo = async (req, res) => {
+  try {
+    const { codigo, codigoOriginal, debug } = req.body
+
+    console.log('=== DEBUG VERIFICACIÓN CÓDIGO ===')
+    console.log('Código original recibido:', JSON.stringify(codigoOriginal))
+    console.log('Código normalizado recibido:', JSON.stringify(codigo))
+    console.log('Info debug completa:', debug)
+
+    const normalizeCode = (code) => {
+      if (!code) return ''
+      return String(code)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '')
+        .replace(/[^\w]/g, '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/gi, '')
+    }
+
+    const codigoRecibido = normalizeCode(codigo)
+    const codigoCreador = normalizeCode(process.env.CODIGO_SECRETO_CREADOR)
+    const codigoAdmin = normalizeCode(process.env.CODIGO_SECRETO_ADMIN)
+    const codigoMonitor = normalizeCode(process.env.CODIGO_SECRETO_MONITOR)
+
+    console.log('=== COMPARACIÓN ===')
+    console.log('Código recibido final:', JSON.stringify(codigoRecibido))
+    console.log('Código creador esperado:', JSON.stringify(codigoCreador))
+    console.log('Código admin esperado:', JSON.stringify(codigoAdmin))
+    console.log('Código monitor esperado:', JSON.stringify(codigoMonitor))
+    console.log('=== FIN DEBUG ===')
 
     if (codigoRecibido === codigoCreador) {
       const existingCreator = await User.findOne({ rol: 'creador' })
