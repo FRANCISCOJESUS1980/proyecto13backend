@@ -7,6 +7,21 @@ const consentimientoSchema = new mongoose.Schema(
       ref: 'User',
       required: true
     },
+    nombreCompleto: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    dni: {
+      type: String,
+      required: true,
+      trim: true,
+      uppercase: true
+    },
+    firmaDigital: {
+      type: String,
+      required: true
+    },
     aceptado: {
       type: Boolean,
       required: true,
