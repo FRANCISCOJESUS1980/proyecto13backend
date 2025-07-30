@@ -5,12 +5,6 @@ exports.añadirSesionesLibres = async (req, res) => {
     const { userId } = req.params
     const { cantidad, motivo, detalles } = req.body
 
-    console.log('=== AÑADIR SESIONES LIBRES ===')
-    console.log('userId:', userId)
-    console.log('cantidad:', cantidad)
-    console.log('motivo:', motivo)
-    console.log('administrador:', req.user._id)
-
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -52,10 +46,6 @@ exports.añadirSesionesLibres = async (req, res) => {
       motivo,
       req.user._id,
       detalles || ''
-    )
-
-    console.log(
-      `${cantidad} sesiones libres añadidas a ${usuario.nombre}. Total: ${nuevasSesiones}`
     )
 
     res.status(200).json({

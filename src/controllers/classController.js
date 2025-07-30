@@ -195,18 +195,9 @@ const procesarInscripcion = async (usuario, clase, esAdmin) => {
 
       tipoSesionUsada = 'bono'
       bonoUtilizado = bono._id
-
-      console.log(`=== INSCRIPCIÓN PROCESADA ===`)
-      console.log(`Tipo sesión: ${tipoSesionUsada}`)
-      console.log(`Bono utilizado: ${bonoUtilizado}`)
-      console.log(`Sesiones restantes: ${bono.sesionesRestantes}`)
     } else if (puedeReservar.tipo === 'sesiones_libres') {
       await usuario.usarSesionLibre(`Clase: ${clase.nombre}`)
       tipoSesionUsada = 'sesiones_libres'
-
-      console.log(`=== INSCRIPCIÓN PROCESADA ===`)
-      console.log(`Tipo sesión: ${tipoSesionUsada}`)
-      console.log(`Sesiones libres usadas: 1`)
     }
   } else {
     tipoSesionUsada = 'admin'
@@ -218,84 +209,45 @@ const procesarInscripcion = async (usuario, clase, esAdmin) => {
 const procesarCancelacion = async (usuario, clase, inscripcion, esAdmin) => {
   if (esAdmin) return
 
-  console.log('=== PROCESAR CANCELACIÓN ===')
-  console.log('Inscripción encontrada:', inscripcion)
-  console.log('Tipo de sesión:', inscripcion?.tipoSesion)
-  console.log('Bono utilizado:', inscripcion?.bonoUtilizado)
-
   if (
     inscripcion &&
     inscripcion.tipoSesion === 'bono' &&
     inscripcion.bonoUtilizado
   ) {
-    console.log('=== CANCELACIÓN DE BONO: Verificando vigencia ===')
-
     const bonoUtilizado = await Bono.findById(inscripcion.bonoUtilizado)
 
     if (bonoUtilizado) {
-      console.log(
-        `Bono encontrado: ${bonoUtilizado._id}, Estado: ${bonoUtilizado.estado}`
-      )
-      console.log(`Fecha fin del bono: ${bonoUtilizado.fechaFin}`)
-      console.log(`Fecha actual: ${new Date()}`)
-
       const fechaFin = new Date(bonoUtilizado.fechaFin)
       fechaFin.setHours(23, 59, 59, 999)
       const estaExpiradoPorFecha = new Date() > fechaFin
 
-      console.log(`¿Bono expirado por fecha?: ${estaExpiradoPorFecha}`)
-
       if (!estaExpiradoPorFecha) {
-        console.log('✅ BONO VIGENTE: Devolviendo sesión al bono')
-
         if (bonoUtilizado.tipo !== 'Ilimitado') {
           bonoUtilizado.sesionesRestantes += 1
           await bonoUtilizado.save()
 
           await bonoUtilizado.actualizarEstado()
 
-          console.log(
-            `✅ Sesión devuelta al bono. Nuevas sesiones: ${bonoUtilizado.sesionesRestantes}`
-          )
-
           if (bonoUtilizado.estado === 'activo' && !usuario.bonoActivo) {
             usuario.bonoActivo = bonoUtilizado._id
             await usuario.save()
-            console.log('Usuario actualizado con bono reactivado')
           }
-        } else {
-          console.log(
-            '✅ Bono ilimitado vigente - no se necesita devolver sesiones'
-          )
         }
-
         inscripcion.sesionDevuelta = true
       } else {
-        console.log('❌ BONO EXPIRADO: La sesión se pierde (no se devuelve)')
         inscripcion.sesionDevuelta = false
-        console.log(
-          '❌ Sesión perdida - el bono expiró y el usuario tuvo su tiempo para usarla'
-        )
       }
     } else {
-      console.log('❌ Bono no encontrado, sesión se pierde')
       if (inscripcion) inscripcion.sesionDevuelta = false
     }
   } else if (inscripcion && inscripcion.tipoSesion === 'sesiones_libres') {
-    console.log(
-      '=== CANCELACIÓN DE SESIONES LIBRES: Devolviendo a sesiones libres ==='
-    )
-
     await usuario.añadirSesionesLibres(
       1,
       `Cancelación clase: ${clase.nombre}`,
       usuario._id
     )
     inscripcion.sesionDevuelta = true
-    console.log('✅ Sesión libre devuelta')
   } else {
-    console.log('=== SIN INFORMACIÓN ESPECÍFICA: No se devuelve nada ===')
-    console.log('❌ Sin información de tipo de sesión - no se devuelve nada')
   }
 }
 
@@ -526,11 +478,6 @@ exports.inscribirUsuarioClase = async (req, res) => {
       req.user.rol === 'creador' ||
       req.user.rol === 'monitor'
 
-    console.log('=== INSCRIBIR USUARIO EN CLASE ===')
-    console.log('Usuario ID:', userIdFinal)
-    console.log('Clase ID:', claseId)
-    console.log('Es Admin:', esAdmin)
-
     const usuario = await User.findById(userIdFinal).populate('bonoActivo')
     if (!usuario) {
       return res.status(404).json({
@@ -593,13 +540,6 @@ exports.inscribirUsuarioClase = async (req, res) => {
 
     await clase.save()
 
-    console.log('=== HISTORIAL GUARDADO ===')
-    console.log('Nueva inscripción:', nuevaInscripcion)
-    console.log(
-      'Total inscripciones en historial:',
-      clase.historialInscripciones.length
-    )
-
     await clase.populate([
       {
         path: 'inscritos',
@@ -636,11 +576,6 @@ exports.cancelarUsuarioClase = async (req, res) => {
       req.user.rol === 'creador' ||
       req.user.rol === 'monitor'
 
-    console.log('=== BACKEND: CANCELAR INSCRIPCIÓN ===')
-    console.log('Usuario ID:', userIdFinal)
-    console.log('Clase ID:', claseId)
-    console.log('Es Admin:', esAdmin)
-
     const usuario = await User.findById(userIdFinal).populate('bonoActivo')
     if (!usuario) {
       return res.status(404).json({
@@ -657,10 +592,6 @@ exports.cancelarUsuarioClase = async (req, res) => {
       })
     }
 
-    console.log('=== BACKEND: Estado inicial ===')
-    console.log('Inscritos antes:', clase.inscritos.length)
-    console.log('Usuario está inscrito:', clase.inscritos.includes(userIdFinal))
-
     if (!clase.inscritos.includes(userIdFinal)) {
       return res.status(400).json({
         success: false,
@@ -675,12 +606,6 @@ exports.cancelarUsuarioClase = async (req, res) => {
         message: validacionCancelacion.mensaje
       })
     }
-
-    console.log('=== BACKEND: BUSCANDO INSCRIPCIÓN EN HISTORIAL ===')
-    console.log(
-      'Total inscripciones en historial:',
-      clase.historialInscripciones?.length || 0
-    )
 
     if (!clase.historialInscripciones) {
       clase.historialInscripciones = []
@@ -698,15 +623,9 @@ exports.cancelarUsuarioClase = async (req, res) => {
       }
     }
 
-    console.log(
-      '=== BACKEND: Índice de inscripción encontrada:',
-      inscripcionIndex
-    )
-
     let inscripcion = null
     if (inscripcionIndex !== -1) {
       inscripcion = clase.historialInscripciones[inscripcionIndex]
-      console.log('=== BACKEND: Inscripción encontrada:', inscripcion)
 
       inscripcion.estado = 'cancelada'
       inscripcion.fechaCancelacion = new Date()
@@ -720,17 +639,7 @@ exports.cancelarUsuarioClase = async (req, res) => {
     )
     const inscritosDespues = clase.inscritos.length
 
-    console.log('=== BACKEND: Removiendo usuario ===')
-    console.log('Inscritos antes de filtrar:', inscritosAntes)
-    console.log('Inscritos después de filtrar:', inscritosDespues)
-    console.log(
-      'Usuario removido correctamente:',
-      inscritosAntes > inscritosDespues
-    )
-
     await clase.save()
-
-    console.log('=== BACKEND: Clase guardada ===')
 
     await clase.populate([
       {
@@ -742,10 +651,6 @@ exports.cancelarUsuarioClase = async (req, res) => {
         select: 'nombre email avatar imagen'
       }
     ])
-
-    console.log('=== BACKEND: Clase después de populate ===')
-    console.log('Inscritos finales:', clase.inscritos.length)
-    console.log('=== BACKEND: CANCELACIÓN COMPLETADA ===')
 
     res.status(200).json({
       success: true,

@@ -4,8 +4,8 @@ const cors = require('cors')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 const connectDB = require('./src/config/db')
-const path = require('path')
-const fs = require('fs')
+//const path = require('path')
+//const fs = require('fs')
 const cookieParser = require('cookie-parser')
 const http = require('http')
 const { Server } = require('socket.io')
@@ -96,8 +96,6 @@ app.get('/api/chat/messages', async (req, res) => {
 })
 
 io.on('connection', async (socket) => {
-  console.log('🟢 Nuevo usuario conectado: ', socket.id)
-
   try {
     const oneMonthAgo = new Date()
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
@@ -147,9 +145,7 @@ io.on('connection', async (socket) => {
       }
     })
 
-    socket.on('disconnect', () => {
-      console.log('🔴 Usuario desconectado', socket.id)
-    })
+    socket.on('disconnect', () => {})
   } catch (error) {
     console.error('Error en la conexión del socket:', error)
     socket.emit('error', { message: 'Error en la conexión' })

@@ -154,16 +154,7 @@ BonoSchema.methods.obtenerEstadoReal = function () {
 BonoSchema.methods.intentarReactivacionAutomatica = async function () {
   const estadoReal = this.obtenerEstadoReal()
 
-  console.log(`=== INTENTAR REACTIVACIÓN AUTOMÁTICA ===`)
-  console.log(`Bono ID: ${this._id}`)
-  console.log(`Estado actual: ${this.estado}`)
-  console.log(`Estado real calculado: ${estadoReal}`)
-  console.log(`Sesiones restantes: ${this.sesionesRestantes}`)
-  console.log(`Expirado por fecha: ${this.estaExpiradoPorFecha()}`)
-  console.log(`Puede ser reactivado: ${this.puedeSerReactivado()}`)
-
   if (this.estado !== estadoReal) {
-    console.log(`Actualizando estado: ${this.estado} -> ${estadoReal}`)
     this.estado = estadoReal
 
     if (
@@ -174,7 +165,6 @@ BonoSchema.methods.intentarReactivacionAutomatica = async function () {
       await User.findByIdAndUpdate(this.usuario, {
         bonoActivo: this._id
       })
-      console.log(`Usuario actualizado con bono activo: ${this._id}`)
     }
 
     if (estadoReal === 'expirado' && this.estado !== 'expirado') {
@@ -182,7 +172,6 @@ BonoSchema.methods.intentarReactivacionAutomatica = async function () {
       await User.findByIdAndUpdate(this.usuario, {
         $unset: { bonoActivo: 1 }
       })
-      console.log(`Bono removido del usuario por expiración`)
     }
 
     await this.save()
@@ -214,23 +203,11 @@ BonoSchema.methods.devolverSesiones = async function (
   cantidad,
   motivo = 'Devolución de sesión'
 ) {
-  console.log(`=== DEVOLVER SESIONES ===`)
-  console.log(`Bono ID: ${this._id}`)
-  console.log(`Estado actual: ${this.estado}`)
-  console.log(`Sesiones a devolver: ${cantidad}`)
-  console.log(`Sesiones actuales: ${this.sesionesRestantes}`)
-
   if (!this.puedeSerReactivado()) {
-    console.log(
-      `Bono no puede ser reactivado. Estado: ${
-        this.estado
-      }, Expirado: ${this.estaExpiradoPorFecha()}`
-    )
     return false
   }
 
   this.sesionesRestantes += cantidad
-  console.log(`Nuevas sesiones restantes: ${this.sesionesRestantes}`)
 
   await this.intentarReactivacionAutomatica()
 
@@ -254,9 +231,6 @@ BonoSchema.statics.actualizarBonosExpirados = async function () {
       }
     }
 
-    console.log(
-      `Verificación de bonos completada. ${bonosActualizados} bonos actualizados.`
-    )
     return bonosActualizados
   } catch (error) {
     console.error('Error al actualizar bonos expirados:', error)

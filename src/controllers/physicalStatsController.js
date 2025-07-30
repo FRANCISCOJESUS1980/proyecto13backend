@@ -91,21 +91,18 @@ const physicalStatsController = {
   getLatestStats: async (req, res) => {
     try {
       const userId = req.user._id
-      console.log('Obteniendo últimas estadísticas para el usuario:', userId)
 
       const latestStats = await PhysicalStats.findOne({ userId }).sort({
         fecha: -1
       })
 
       if (!latestStats) {
-        console.log('No se encontraron estadísticas para el usuario:', userId)
         return res.status(404).json({
           success: false,
           message: 'No se encontraron estadísticas para este usuario'
         })
       }
 
-      console.log('Estadísticas encontradas:', latestStats.medidas)
       res.status(200).json({
         success: true,
         data: latestStats
@@ -191,7 +188,6 @@ const objetivosController = {
   getObjetivos: async (req, res) => {
     try {
       const userId = req.user._id
-      console.log('Obteniendo objetivos para el usuario:', userId)
 
       const { completado } = req.query
 
@@ -202,7 +198,6 @@ const objetivosController = {
       }
 
       const objetivos = await Objetivo.find(query).sort({ fechaObjetivo: 1 })
-      console.log('Objetivos encontrados:', objetivos.length)
 
       res.status(200).json({
         success: true,
@@ -223,14 +218,6 @@ const objetivosController = {
     try {
       const userId = req.user._id
       const { tipo, medida, valorObjetivo, fechaObjetivo } = req.body
-
-      console.log('Datos recibidos en el servidor:', {
-        userId,
-        tipo,
-        medida,
-        valorObjetivo,
-        fechaObjetivo
-      })
 
       const latestStats = await PhysicalStats.findOne({ userId }).sort({
         fecha: -1
@@ -263,7 +250,6 @@ const objetivosController = {
       })
 
       await nuevoObjetivo.save()
-      console.log('Objetivo guardado en la base de datos:', nuevoObjetivo)
 
       res.status(201).json({
         success: true,
@@ -285,19 +271,12 @@ const objetivosController = {
       const userId = req.user._id
       const { objetivoId } = req.params
 
-      console.log(
-        `Intentando eliminar objetivo ${objetivoId} para el usuario ${userId}`
-      )
-
       const objetivo = await Objetivo.findOne({
         _id: objetivoId,
         userId: userId
       })
 
       if (!objetivo) {
-        console.log(
-          `Objetivo ${objetivoId} no encontrado o no pertenece al usuario ${userId}`
-        )
         return res.status(404).json({
           success: false,
           message: 'Objetivo no encontrado o no tienes permiso para eliminarlo'
@@ -305,7 +284,6 @@ const objetivosController = {
       }
 
       await Objetivo.findByIdAndDelete(objetivoId)
-      console.log(`Objetivo ${objetivoId} eliminado correctamente`)
 
       res.status(200).json({
         success: true,

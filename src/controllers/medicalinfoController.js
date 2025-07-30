@@ -166,15 +166,6 @@ exports.getAllMedicalInfo = async (req, res) => {
       medicalInfoList = validRecords
     }
 
-    console.log(
-      'Datos de usuarios recuperados:',
-      medicalInfoList.map((info) => ({
-        userId: info.user?._id,
-        nombre: info.user?.nombre,
-        email: info.user?.email
-      }))
-    )
-
     res.status(200).json({
       success: true,
       data: medicalInfoList

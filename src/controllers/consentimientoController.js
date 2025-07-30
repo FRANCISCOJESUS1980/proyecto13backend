@@ -3,7 +3,6 @@ const User = require('../models/User')
 
 exports.crearConsentimiento = async (req, res) => {
   try {
-    console.log('Datos recibidos en crearConsentimiento:', req.body)
     const {
       userId,
       nombreCompleto,
@@ -150,7 +149,6 @@ exports.obtenerConsentimientoPorUsuario = async (req, res) => {
 exports.eliminarConsentimiento = async (req, res) => {
   try {
     const { id } = req.params
-    console.log(`Solicitud para eliminar consentimiento con ID: ${id}`)
 
     if (!id) {
       return res.status(400).json({
@@ -168,7 +166,6 @@ exports.eliminarConsentimiento = async (req, res) => {
     }
 
     await Consentimiento.findByIdAndDelete(id)
-    console.log(`Consentimiento con ID ${id} eliminado correctamente`)
 
     res.status(200).json({
       success: true,

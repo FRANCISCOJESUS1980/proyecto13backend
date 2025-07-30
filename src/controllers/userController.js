@@ -1,6 +1,6 @@
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcryptjs')
+//const bcrypt = require('bcryptjs')
 const cloudinary = require('../config/cloudinary')
 const fs = require('fs').promises
 
@@ -10,8 +10,6 @@ const generateToken = (id) => {
 exports.verificarCodigo = async (req, res) => {
   try {
     const { codigo } = req.body
-
-    console.log('Código recibido en el servidor:', codigo)
 
     const codigoRecibido = String(codigo).trim()
     const codigoCreador = String(process.env.CODIGO_SECRETO_CREADOR).trim()
@@ -68,8 +66,6 @@ exports.registerUser = async (req, res) => {
     const { nombre, email, password, rol, codigoAutorizacion } = req.body
     let avatarUrl = 'default-avatar.jpg'
 
-    console.log('Archivo recibido:', req.file)
-
     const userExists = await User.findOne({ email })
     if (userExists) {
       if (req.file) {
@@ -125,18 +121,15 @@ exports.registerUser = async (req, res) => {
 
     if (req.file) {
       try {
-        console.log('Subiendo imagen a Cloudinary...')
         const result = await cloudinary.uploader.upload(req.file.path, {
           folder: 'avatars',
           width: 150,
           height: 150,
           crop: 'fill'
         })
-        console.log('Respuesta de Cloudinary:', result)
         avatarUrl = result.secure_url
 
         await fs.unlink(req.file.path)
-        console.log('Archivo temporal eliminado')
       } catch (error) {
         console.error('Error al subir imagen a Cloudinary:', error)
         if (req.file) {
@@ -150,7 +143,6 @@ exports.registerUser = async (req, res) => {
       }
     }
 
-    console.log('Creando usuario con avatar:', avatarUrl)
     const user = await User.create({
       nombre,
       email,
@@ -242,15 +234,11 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    console.log('Body recibido:', req.body)
-    console.log('Archivo recibido:', req.file)
-
     const userData = { ...req.body }
 
     if (userData.direccion && typeof userData.direccion === 'string') {
       try {
         userData.direccion = JSON.parse(userData.direccion)
-        console.log('Dirección parseada:', userData.direccion)
       } catch (e) {
         console.error('Error al parsear direccion:', e)
       }
@@ -264,7 +252,6 @@ exports.updateProfile = async (req, res) => {
         })
 
         userData.avatar = result.secure_url
-        console.log('URL de Cloudinary guardada en avatar:', result.secure_url)
 
         await fs.unlink(req.file.path)
       } catch (error) {
@@ -277,15 +264,10 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    console.log('Datos a actualizar en MongoDB:', userData)
-    console.log('ID de usuario:', req.user._id)
-
     const user = await User.findByIdAndUpdate(req.user._id, userData, {
       new: true,
       runValidators: true
     })
-
-    console.log('Usuario actualizado:', user)
 
     res.status(200).json({
       success: true,

@@ -36,7 +36,7 @@ const verificarConexion = async () => {
     if (!transport) return false
 
     await transport.verify()
-    console.log('✅ Conexión SMTP verificada correctamente')
+
     return true
   } catch (error) {
     console.error('❌ Error en la conexión SMTP:', error.message)
@@ -79,9 +79,8 @@ exports.enviarEmail = async ({ destinatario, asunto, contenido }) => {
       `
     }
 
-    console.log(`📧 Intentando enviar email a: ${destinatario}`)
     const info = await transport.sendMail(mailOptions)
-    console.log(`✅ Email enviado a ${destinatario}: ${info.messageId}`)
+
     return info
   } catch (error) {
     console.error(`❌ Error al enviar email a ${destinatario}:`, error.message)

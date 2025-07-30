@@ -17,7 +17,6 @@ const importUsers = async () => {
       .on('data', (row) => users.push(row))
       .on('end', async () => {
         await User.insertMany(users)
-        console.log('Usuarios importados')
         process.exit()
       })
   } catch (error) {

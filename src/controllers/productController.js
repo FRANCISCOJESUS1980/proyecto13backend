@@ -71,8 +71,6 @@ exports.getProducts = async (req, res) => {
 
 exports.getProductsAdmin = async (req, res) => {
   try {
-    console.log('getProductsAdmin llamado')
-
     const { limit = 10, page = 1, sort = '-createdAt' } = req.query
 
     const options = {
@@ -88,16 +86,12 @@ exports.getProductsAdmin = async (req, res) => {
       filter.categoria = req.query.categoria
     }
 
-    console.log('Filtro:', filter)
-
     const products = await Product.find(filter)
       .sort(options.sort)
       .skip((options.page - 1) * options.limit)
       .limit(options.limit)
 
     const total = await Product.countDocuments(filter)
-
-    console.log(`Encontrados ${products.length} productos`)
 
     res.status(200).json({
       success: true,

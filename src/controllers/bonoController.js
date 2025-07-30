@@ -190,11 +190,6 @@ exports.pausarBono = async (req, res) => {
     const { bonoId } = req.params
     const { motivo, fechaPausa } = req.body
 
-    console.log('=== PAUSAR BONO ===')
-    console.log('Bono ID:', bonoId)
-    console.log('Motivo:', motivo)
-    console.log('Fecha pausa:', fechaPausa)
-
     const bono = await Bono.findById(bonoId)
 
     if (!bono) {
@@ -203,8 +198,6 @@ exports.pausarBono = async (req, res) => {
         message: 'Bono no encontrado'
       })
     }
-
-    console.log('Estado actual del bono:', bono.estado)
 
     if (bono.estado === 'pausado') {
       return res.status(400).json({
@@ -237,8 +230,6 @@ exports.pausarBono = async (req, res) => {
 
     await bono.save()
 
-    console.log(`Bono ${bonoId} pausado exitosamente`)
-
     res.status(200).json({
       success: true,
       message: 'Bono pausado exitosamente',
@@ -259,11 +250,6 @@ exports.reactivarBono = async (req, res) => {
     const { bonoId } = req.params
     const { diasExtension, fechaReactivacion } = req.body
 
-    console.log('=== REACTIVAR BONO ===')
-    console.log('Bono ID:', bonoId)
-    console.log('Días extensión:', diasExtension)
-    console.log('Fecha reactivación:', fechaReactivacion)
-
     const bono = await Bono.findById(bonoId)
 
     if (!bono) {
@@ -272,10 +258,6 @@ exports.reactivarBono = async (req, res) => {
         message: 'Bono no encontrado'
       })
     }
-
-    console.log('Estado actual del bono:', bono.estado)
-    console.log('Fecha pausa:', bono.fechaPausa)
-    console.log('Motivo pausa:', bono.motivoPausa)
 
     if (bono.estado !== 'pausado') {
       return res.status(400).json({
@@ -296,19 +278,11 @@ exports.reactivarBono = async (req, res) => {
       )
     }
 
-    console.log(`Reactivando bono ${bonoId}:`)
-    console.log(`- Fecha de pausa: ${bono.fechaPausa}`)
-    console.log(`- Fecha de reactivación: ${fechaReactivacionDate}`)
-    console.log(`- Días de extensión: ${diasCalculados}`)
-    console.log(`- Fecha fin anterior: ${bono.fechaFin}`)
-
     if (diasCalculados > 0) {
       const nuevaFechaFin = new Date(bono.fechaFin)
       nuevaFechaFin.setDate(nuevaFechaFin.getDate() + diasCalculados)
       bono.fechaFin = nuevaFechaFin
       bono.diasTotalExtension = (bono.diasTotalExtension || 0) + diasCalculados
-
-      console.log(`- Nueva fecha fin: ${nuevaFechaFin}`)
     }
 
     if (bono.historialPausas && bono.historialPausas.length > 0) {
@@ -324,10 +298,6 @@ exports.reactivarBono = async (req, res) => {
     bono.fechaPausa = null
 
     await bono.save()
-
-    console.log(
-      `Bono ${bonoId} reactivado exitosamente con ${diasCalculados} días de extensión`
-    )
 
     res.status(200).json({
       success: true,
@@ -397,10 +367,6 @@ exports.añadirSesiones = async (req, res) => {
     await bono.save()
 
     await verificarYActualizarBono(bono)
-
-    console.log(
-      `${sesionesAñadir} sesiones añadidas exitosamente al bono ${bonoId}`
-    )
 
     res.status(200).json({
       success: true,
@@ -480,8 +446,6 @@ exports.obtenerTodosLosBonos = async (req, res) => {
       path: 'usuario',
       select: 'nombre email'
     })
-
-    console.log(`Encontrados ${bonos.length} bonos`)
 
     const bonosConInfo = []
 

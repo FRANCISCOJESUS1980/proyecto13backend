@@ -20,8 +20,6 @@ try {
 
 router.post('/procesar', protect, async (req, res) => {
   try {
-    console.log('Datos recibidos:', JSON.stringify(req.body, null, 2))
-
     const { items, total, payment } = req.body
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -90,7 +88,6 @@ router.post('/procesar', protect, async (req, res) => {
         })
       }
     } else {
-      console.log('Procesando pago en modo simulación (sin Stripe)')
     }
 
     const pedido = new Pedido({

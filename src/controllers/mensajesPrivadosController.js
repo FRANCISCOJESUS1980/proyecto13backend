@@ -2,7 +2,7 @@ const User = require('../models/User')
 const { enviarEmail } = require('../utils/emailService')
 const MensajePrivado = require('../models/MensajePrivado')
 const Conversacion = require('../models/Conversacion')
-const mongoose = require('mongoose')
+//const mongoose = require('mongoose')
 
 exports.obtenerConversaciones = async (req, res) => {
   try {
@@ -50,8 +50,6 @@ exports.obtenerMensajesConversacion = async (req, res) => {
     const userId = req.user._id
     const { conversacionId } = req.params
 
-    console.log('Obteniendo mensajes para conversación ID:', conversacionId)
-
     const conversacion = await Conversacion.findOne({
       _id: conversacionId,
       $or: [{ usuario: userId }, { admin: userId }]
@@ -90,8 +88,6 @@ exports.obtenerConversacionUsuario = async (req, res) => {
   try {
     const userId = req.user._id
     const { usuarioId } = req.params
-
-    console.log('Obteniendo conversación para usuario ID:', usuarioId)
 
     const otroUsuario = await User.findById(usuarioId)
     if (!otroUsuario) {
@@ -377,11 +373,6 @@ exports.actualizarMensaje = async (req, res) => {
     const { mensajeId } = req.params
     const { mensaje } = req.body
 
-    console.log('Solicitud de actualización recibida:')
-    console.log('- ID del mensaje:', mensajeId)
-    console.log('- ID del usuario:', userId)
-    console.log('- Nuevo texto:', mensaje)
-
     if (!mensaje || mensaje.trim() === '') {
       return res.status(400).json({
         success: false,
@@ -395,21 +386,17 @@ exports.actualizarMensaje = async (req, res) => {
     })
 
     if (!mensajeExistente) {
-      console.log('Mensaje no encontrado o usuario no autorizado')
       return res.status(404).json({
         success: false,
         message: 'Mensaje no encontrado o no tienes permiso para editarlo'
       })
     }
 
-    console.log('Mensaje encontrado:', mensajeExistente)
-
     mensajeExistente.mensaje = mensaje
     mensajeExistente.editado = true
     mensajeExistente.fechaEdicion = new Date()
 
     await mensajeExistente.save()
-    console.log('Mensaje actualizado correctamente')
 
     const mensajeActualizado = await MensajePrivado.findById(mensajeId)
       .populate('remitente', 'nombre email avatar imagen rol')
@@ -520,10 +507,6 @@ exports.enviarMensajeMasivo = async (req, res) => {
         const emailsEnviados = []
         const emailsFallidos = []
 
-        console.log(
-          `Iniciando envío de emails en segundo plano a ${usuarios.length} usuarios`
-        )
-
         const BATCH_SIZE = 3
 
         for (let i = 0; i < usuarios.length; i += BATCH_SIZE) {
@@ -531,8 +514,6 @@ exports.enviarMensajeMasivo = async (req, res) => {
 
           const promesas = loteUsuarios.map(async (usuario) => {
             if (!usuario.email) return null
-
-            console.log(`Intentando enviar email a: ${usuario.email}`)
 
             try {
               const timeoutPromise = new Promise((_, reject) =>
@@ -567,7 +548,6 @@ exports.enviarMensajeMasivo = async (req, res) => {
 
               await Promise.race([emailPromise, timeoutPromise])
 
-              console.log(`Email enviado correctamente a: ${usuario.email}`)
               emailsEnviados.push(usuario.email)
               return { success: true, email: usuario.email }
             } catch (emailError) {
@@ -590,10 +570,6 @@ exports.enviarMensajeMasivo = async (req, res) => {
 
           await new Promise((resolve) => setTimeout(resolve, 3000))
         }
-
-        console.log(`Proceso de envío de emails completado:`)
-        console.log(`- Emails enviados: ${emailsEnviados.length}`)
-        console.log(`- Emails fallidos: ${emailsFallidos.length}`)
       }
 
       enviarEmailsEnSegundoPlano().catch((error) => {
@@ -713,8 +689,6 @@ exports.enviarMensaje = async (req, res) => {
 
       const enviarEmailEnSegundoPlano = async () => {
         try {
-          console.log(`Intentando enviar email a: ${destinatarioUser.email}`)
-
           const emailPromise = enviarEmail({
             destinatario: destinatarioUser.email,
             asunto: `Nuevo mensaje de ${remitente.nombre}`,
@@ -744,9 +718,6 @@ exports.enviarMensaje = async (req, res) => {
           const result = await Promise.race([emailPromise, timeoutPromise])
 
           if (result && result.success) {
-            console.log(
-              `Email enviado correctamente a: ${destinatarioUser.email}`
-            )
           } else {
             console.warn(
               `No se pudo enviar email a ${destinatarioUser.email}: ${
