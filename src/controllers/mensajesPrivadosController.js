@@ -2,7 +2,6 @@ const User = require('../models/User')
 const { enviarEmail } = require('../utils/emailService')
 const MensajePrivado = require('../models/MensajePrivado')
 const Conversacion = require('../models/Conversacion')
-//const mongoose = require('mongoose')
 
 exports.obtenerConversaciones = async (req, res) => {
   try {

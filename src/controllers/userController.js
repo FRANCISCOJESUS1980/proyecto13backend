@@ -1,6 +1,5 @@
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
-//const bcrypt = require('bcryptjs')
 const cloudinary = require('../config/cloudinary')
 const fs = require('fs').promises
 
