@@ -6,44 +6,70 @@ const fs = require('fs').promises
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
 }
+
+const deleteLocalFile = async (path) => {
+  try {
+    await fs.unlink(path)
+  } catch (error) {
+    console.error(`Error eliminando archivo local: ${path}`, error)
+  }
+}
+
+const getRoleCode = (rol) => {
+  switch (rol) {
+    case 'creador':
+      return process.env.CODIGO_SECRETO_CREADOR?.trim()
+    case 'admin':
+      return process.env.CODIGO_SECRETO_ADMIN?.trim()
+    case 'monitor':
+      return process.env.CODIGO_SECRETO_MONITOR?.trim()
+    default:
+      return null
+  }
+}
+
+const uploadToCloudinary = async (
+  filePath,
+  folder = 'avatars',
+  width = 150,
+  height = 150
+) => {
+  const result = await cloudinary.uploader.upload(filePath, {
+    folder,
+    width,
+    height,
+    crop: 'fill'
+  })
+  await deleteLocalFile(filePath)
+  return result.secure_url
+}
+
 exports.verificarCodigo = async (req, res) => {
   try {
     const { codigo } = req.body
-
     const codigoRecibido = String(codigo).trim()
-    const codigoCreador = String(process.env.CODIGO_SECRETO_CREADOR).trim()
-    const codigoAdmin = String(process.env.CODIGO_SECRETO_ADMIN).trim()
-    const codigoMonitor = String(process.env.CODIGO_SECRETO_MONITOR).trim()
 
-    if (codigoRecibido === codigoCreador) {
-      const existingCreator = await User.findOne({ rol: 'creador' })
-      if (existingCreator) {
-        return res.status(403).json({
-          success: false,
-          message: 'Ya existe un usuario con rol de creador'
+    const roles = ['creador', 'admin', 'monitor']
+
+    for (const rol of roles) {
+      const codigoEsperado = getRoleCode(rol)
+      if (codigoRecibido === codigoEsperado) {
+        if (rol === 'creador') {
+          const existingCreator = await User.findOne({ rol: 'creador' })
+          if (existingCreator) {
+            return res.status(403).json({
+              success: false,
+              message: 'Ya existe un usuario con rol de creador'
+            })
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: `Código válido para ${rol}`,
+          rol
         })
       }
-      return res.status(200).json({
-        success: true,
-        message: 'Código válido para creador',
-        rol: 'creador'
-      })
-    }
-
-    if (codigoRecibido === codigoAdmin) {
-      return res.status(200).json({
-        success: true,
-        message: 'Código válido para administrador',
-        rol: 'admin'
-      })
-    }
-
-    if (codigoRecibido === codigoMonitor) {
-      return res.status(200).json({
-        success: true,
-        message: 'Código válido para monitor',
-        rol: 'monitor'
-      })
     }
 
     return res.status(403).json({
@@ -65,11 +91,8 @@ exports.registerUser = async (req, res) => {
     const { nombre, email, password, rol, codigoAutorizacion } = req.body
     let avatarUrl = 'default-avatar.jpg'
 
-    const userExists = await User.findOne({ email })
-    if (userExists) {
-      if (req.file) {
-        await fs.unlink(req.file.path)
-      }
+    if (await User.findOne({ email })) {
+      if (req.file) await deleteLocalFile(req.file.path)
       return res.status(400).json({
         success: false,
         message: 'El usuario ya existe con este email'
@@ -77,27 +100,9 @@ exports.registerUser = async (req, res) => {
     }
 
     if (['creador', 'admin', 'monitor'].includes(rol)) {
-      const codigoRecibido = String(codigoAutorizacion).trim()
-      let codigoEsperado
-
-      switch (rol) {
-        case 'creador':
-          codigoEsperado = String(process.env.CODIGO_SECRETO_CREADOR).trim()
-          break
-        case 'admin':
-          codigoEsperado = String(process.env.CODIGO_SECRETO_ADMIN).trim()
-          break
-        case 'monitor':
-          codigoEsperado = String(process.env.CODIGO_SECRETO_MONITOR).trim()
-          break
-        default:
-          break
-      }
-
-      if (codigoRecibido !== codigoEsperado) {
-        if (req.file) {
-          await fs.unlink(req.file.path)
-        }
+      const codigoEsperado = getRoleCode(rol)
+      if (String(codigoAutorizacion).trim() !== codigoEsperado) {
+        if (req.file) await deleteLocalFile(req.file.path)
         return res.status(403).json({
           success: false,
           message: `Código de autorización inválido para rol de ${rol}`
@@ -107,9 +112,7 @@ exports.registerUser = async (req, res) => {
       if (rol === 'creador') {
         const existingCreator = await User.findOne({ rol: 'creador' })
         if (existingCreator) {
-          if (req.file) {
-            await fs.unlink(req.file.path)
-          }
+          if (req.file) await deleteLocalFile(req.file.path)
           return res.status(403).json({
             success: false,
             message: 'Ya existe un usuario con rol de creador'
@@ -120,20 +123,9 @@ exports.registerUser = async (req, res) => {
 
     if (req.file) {
       try {
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: 'avatars',
-          width: 150,
-          height: 150,
-          crop: 'fill'
-        })
-        avatarUrl = result.secure_url
-
-        await fs.unlink(req.file.path)
+        avatarUrl = await uploadToCloudinary(req.file.path)
       } catch (error) {
-        console.error('Error al subir imagen a Cloudinary:', error)
-        if (req.file) {
-          await fs.unlink(req.file.path)
-        }
+        if (req.file) await deleteLocalFile(req.file.path)
         return res.status(500).json({
           success: false,
           message: 'Error al subir la imagen',
@@ -150,8 +142,6 @@ exports.registerUser = async (req, res) => {
       avatar: avatarUrl
     })
 
-    const token = generateToken(user._id)
-
     res.status(201).json({
       success: true,
       data: {
@@ -160,14 +150,12 @@ exports.registerUser = async (req, res) => {
         email: user.email,
         rol: user.rol,
         avatar: user.avatar,
-        token
+        token: generateToken(user._id)
       }
     })
   } catch (error) {
     console.error('Error en registerUser:', error)
-    if (req.file) {
-      await fs.unlink(req.file.path)
-    }
+    if (req.file) await deleteLocalFile(req.file.path)
     res.status(500).json({
       success: false,
       message: 'Error en el registro',
@@ -179,13 +167,12 @@ exports.registerUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body
-
     const user = await User.findOne({ email }).select('+password')
+
     if (!user || !(await user.compararPassword(password))) {
-      return res.status(401).json({
-        success: false,
-        message: 'Credenciales inválidas'
-      })
+      return res
+        .status(401)
+        .json({ success: false, message: 'Credenciales inválidas' })
     }
 
     res.status(200).json({
@@ -211,17 +198,12 @@ exports.loginUser = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usuario no encontrado'
-      })
-    }
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Usuario no encontrado' })
 
-    res.status(200).json({
-      success: true,
-      data: user
-    })
+    res.status(200).json({ success: true, data: user })
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -245,16 +227,13 @@ exports.updateProfile = async (req, res) => {
 
     if (req.file) {
       try {
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: 'crossfit/usuarios',
-          transformation: [{ width: 200, height: 200, crop: 'fill' }]
-        })
-
-        userData.avatar = result.secure_url
-
-        await fs.unlink(req.file.path)
+        userData.avatar = await uploadToCloudinary(
+          req.file.path,
+          'crossfit/usuarios',
+          200,
+          200
+        )
       } catch (error) {
-        console.error('Error al subir imagen a Cloudinary:', error)
         return res.status(500).json({
           success: false,
           message: 'Error al subir la imagen',
@@ -268,10 +247,7 @@ exports.updateProfile = async (req, res) => {
       runValidators: true
     })
 
-    res.status(200).json({
-      success: true,
-      data: user
-    })
+    res.status(200).json({ success: true, data: user })
   } catch (error) {
     console.error('Error al actualizar perfil:', error)
     res.status(500).json({
@@ -288,19 +264,17 @@ exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body
 
     if (!(await user.compararPassword(currentPassword))) {
-      return res.status(401).json({
-        success: false,
-        message: 'Contraseña actual incorrecta'
-      })
+      return res
+        .status(401)
+        .json({ success: false, message: 'Contraseña actual incorrecta' })
     }
 
     user.password = newPassword
     await user.save()
 
-    res.status(200).json({
-      success: true,
-      message: 'Contraseña actualizada correctamente'
-    })
+    res
+      .status(200)
+      .json({ success: true, message: 'Contraseña actualizada correctamente' })
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -313,10 +287,7 @@ exports.changePassword = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-    res.status(200).json({
-      success: true,
-      data: users
-    })
+    res.status(200).json({ success: true, data: users })
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -329,17 +300,12 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usuario no encontrado'
-      })
-    }
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Usuario no encontrado' })
 
-    res.status(200).json({
-      success: true,
-      data: user
-    })
+    res.status(200).json({ success: true, data: user })
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -356,17 +322,12 @@ exports.updateUser = async (req, res) => {
       runValidators: true
     })
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usuario no encontrado'
-      })
-    }
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Usuario no encontrado' })
 
-    res.status(200).json({
-      success: true,
-      data: user
-    })
+    res.status(200).json({ success: true, data: user })
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -379,17 +340,14 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id)
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usuario no encontrado'
-      })
-    }
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Usuario no encontrado' })
 
-    res.status(200).json({
-      success: true,
-      message: 'Usuario eliminado correctamente'
-    })
+    res
+      .status(200)
+      .json({ success: true, message: 'Usuario eliminado correctamente' })
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -397,4 +355,32 @@ exports.deleteUser = async (req, res) => {
       error: error.message
     })
   }
+}
+
+exports.getEntrenadores = async (req, res) => {
+  try {
+    const entrenadores = await User.find({ rol: 'monitor' }).select(
+      'nombre email imagen rol'
+    )
+    res
+      .status(200)
+      .json({ success: true, count: entrenadores.length, data: entrenadores })
+  } catch (error) {
+    console.error('Error al obtener entrenadores:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener los entrenadores',
+      error: error.message
+    })
+  }
+}
+
+exports.getCurrentUser = (req, res) => {
+  res.status(200).json({
+    userId: req.user._id,
+    nombre: req.user.nombre,
+    email: req.user.email,
+    rol: req.user.rol,
+    imagen: req.user.imagen
+  })
 }

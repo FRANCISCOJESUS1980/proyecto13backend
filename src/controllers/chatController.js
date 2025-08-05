@@ -134,9 +134,28 @@ const deleteMessage = async (req, res) => {
   }
 }
 
+const deleteAllMessages = async (req, res) => {
+  try {
+    await Message.deleteMany({})
+    req.io.emit('chatHistory', [])
+
+    res.json({
+      success: true,
+      message: 'Todos los mensajes han sido eliminados'
+    })
+  } catch (error) {
+    console.error('Error al eliminar todos los mensajes:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar todos los mensajes'
+    })
+  }
+}
+
 module.exports = {
   getAllMessages,
   getMessage,
   updateMessage,
-  deleteMessage
+  deleteMessage,
+  deleteAllMessages
 }

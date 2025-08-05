@@ -2,7 +2,6 @@ const express = require('express')
 const router = express.Router()
 const { protect } = require('../middlewares/authMiddleware')
 const upload = require('../config/multer')
-const User = require('../models/User')
 const {
   registerUser,
   loginUser,
@@ -13,39 +12,13 @@ const {
   getUserById,
   updateUser,
   deleteUser,
-  verificarCodigo
+  verificarCodigo,
+  getEntrenadores,
+  getCurrentUser
 } = require('../controllers/userController')
 
-router.get('/entrenadores', async (req, res) => {
-  try {
-    const entrenadores = await User.find({
-      rol: 'monitor'
-    }).select('nombre email imagen rol')
-
-    res.status(200).json({
-      success: true,
-      count: entrenadores.length,
-      data: entrenadores
-    })
-  } catch (error) {
-    console.error('Error al obtener entrenadores:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener los entrenadores',
-      error: error.message
-    })
-  }
-})
-
-router.get('/me', protect, (req, res) => {
-  res.status(200).json({
-    userId: req.user._id,
-    nombre: req.user.nombre,
-    email: req.user.email,
-    rol: req.user.rol,
-    imagen: req.user.imagen
-  })
-})
+router.get('/entrenadores', getEntrenadores)
+router.get('/me', protect, getCurrentUser)
 
 router.post('/register', upload.single('avatar'), registerUser)
 router.post('/login', loginUser)
@@ -54,6 +27,7 @@ router.post('/verificar-codigo', verificarCodigo)
 router.get('/profile', protect, getProfile)
 router.put('/profile', protect, upload.single('avatar'), updateProfile)
 router.put('/change-password', protect, changePassword)
+
 router.get('/', protect, getAllUsers)
 router.get('/:id', protect, getUserById)
 router.put('/:id', protect, updateUser)

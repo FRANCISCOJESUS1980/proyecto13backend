@@ -1,14 +1,13 @@
 const Class = require('../models/Class')
 const cloudinary = require('../config/cloudinary')
 const fs = require('fs')
+const ClassService = require('../services/classService')
 
 exports.createClass = async (req, res) => {
   try {
     const classData = { ...req.body }
 
-    if (classData.entrenador === '') {
-      delete classData.entrenador
-    }
+    if (classData.entrenador === '') delete classData.entrenador
 
     if (classData.fecha && classData.fecha.trim() !== '') {
       classData.esFechaEspecifica = true
@@ -110,9 +109,7 @@ exports.updateClass = async (req, res) => {
   try {
     const classData = { ...req.body }
 
-    if (classData.entrenador === '') {
-      delete classData.entrenador
-    }
+    if (classData.entrenador === '') delete classData.entrenador
 
     if (classData.fecha && classData.fecha.trim() !== '') {
       classData.esFechaEspecifica = true
@@ -213,6 +210,110 @@ exports.deleteClass = async (req, res) => {
       success: false,
       message: 'Error al eliminar la clase',
       error: error.message
+    })
+  }
+}
+
+exports.inscribirUsuario = async (req, res) => {
+  try {
+    const userId = req.user._id
+    const esAdmin = ['admin', 'monitor', 'creador'].includes(req.user.rol)
+
+    const resultado = await ClassService.inscribirUsuario(
+      req.params.id,
+      userId,
+      esAdmin
+    )
+
+    res.status(200).json({
+      success: true,
+      message: 'Inscripción exitosa',
+      data: resultado.clase,
+      tipoSesionUsada: resultado.tipoSesionUsada
+    })
+  } catch (error) {
+    console.error('Error en inscripción:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+exports.cancelarUsuario = async (req, res) => {
+  try {
+    const userId = req.user._id
+    const esAdmin = ['admin', 'monitor', 'creador'].includes(req.user.rol)
+
+    const clase = await ClassService.cancelarUsuario(
+      req.params.id,
+      userId,
+      esAdmin
+    )
+
+    res.status(200).json({
+      success: true,
+      message: 'Inscripción cancelada exitosamente',
+      data: clase
+    })
+  } catch (error) {
+    console.error('Error al cancelar inscripción:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+exports.inscribirUsuarioAdmin = async (req, res) => {
+  try {
+    const { userId } = req.body
+    const userIdFinal = userId || req.user._id
+    const esAdmin = ['admin', 'monitor', 'creador'].includes(req.user.rol)
+
+    const resultado = await ClassService.inscribirUsuario(
+      req.params.id,
+      userIdFinal,
+      esAdmin
+    )
+
+    res.status(200).json({
+      success: true,
+      message: 'Usuario inscrito correctamente',
+      data: resultado.clase,
+      tipoSesionUsada: resultado.tipoSesionUsada
+    })
+  } catch (error) {
+    console.error('Error al inscribir usuario:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+exports.cancelarUsuarioAdmin = async (req, res) => {
+  try {
+    const { userId } = req.body
+    const userIdFinal = userId || req.user._id
+    const esAdmin = ['admin', 'monitor', 'creador'].includes(req.user.rol)
+
+    const clase = await ClassService.cancelarUsuario(
+      req.params.id,
+      userIdFinal,
+      esAdmin
+    )
+
+    res.status(200).json({
+      success: true,
+      message: 'Inscripción cancelada correctamente',
+      data: clase
+    })
+  } catch (error) {
+    console.error('Error al cancelar inscripción:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message
     })
   }
 }
