@@ -2,6 +2,8 @@ const User = require('../models/User')
 const jwt = require('jsonwebtoken')
 const cloudinary = require('../config/cloudinary')
 const fs = require('fs').promises
+const { enviarEmail } = require('../utils/emailService')
+const crypto = require('crypto')
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
@@ -383,4 +385,161 @@ exports.getCurrentUser = (req, res) => {
     rol: req.user.rol,
     imagen: req.user.imagen
   })
+}
+
+exports.solicitarRecuperacionPassword = async (req, res) => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'El email es requerido'
+      })
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() })
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No existe un usuario con ese email'
+      })
+    }
+
+    const resetToken = user.generarTokenResetPassword()
+    await user.save()
+
+    const resetUrl = `${
+      process.env.FRONTEND_URL || 'http://localhost:5173'
+    }/restablecer-password/${resetToken}`
+
+    const contenido = `
+      <div style="text-align: center; padding: 20px;">
+        <h2 style="color: #333; margin-bottom: 20px;">Recuperación de Contraseña</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+          Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en AderCrossFit.
+        </p>
+        <p style="color: #666; margin-bottom: 30px;">
+          Haz clic en el siguiente enlace para crear una nueva contraseña:
+        </p>
+        <a href="${resetUrl}" 
+           style="display: inline-block; background-color: #007bff; color: white; padding: 12px 30px; 
+                  text-decoration: none; border-radius: 5px; font-weight: bold;">
+          Restablecer Contraseña
+        </a>
+        <p style="color: #999; font-size: 12px; margin-top: 30px;">
+          Este enlace expirará en 10 minutos por seguridad.
+        </p>
+        <p style="color: #999; font-size: 12px;">
+          Si no solicitaste este cambio, puedes ignorar este email.
+        </p>
+      </div>
+    `
+
+    await enviarEmail({
+      destinatario: user.email,
+      asunto: 'Recuperación de Contraseña - AderCrossFit',
+      contenido
+    })
+
+    res.status(200).json({
+      success: true,
+      message: 'Se ha enviado un enlace de recuperación a tu email'
+    })
+  } catch (error) {
+    console.error('Error en solicitud de recuperación:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    })
+  }
+}
+
+exports.verificarTokenRecuperacion = async (req, res) => {
+  try {
+    const { token } = req.params
+
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex')
+
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    })
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token inválido o expirado'
+      })
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Token válido'
+    })
+  } catch (error) {
+    console.error('Error al verificar token:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    })
+  }
+}
+
+exports.restablecerPassword = async (req, res) => {
+  try {
+    const { token, nuevaPassword } = req.body
+
+    if (!token || !nuevaPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token y nueva contraseña son requeridos'
+      })
+    }
+
+    if (nuevaPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'La contraseña debe tener al menos 6 caracteres'
+      })
+    }
+
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex')
+
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    })
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token inválido o expirado'
+      })
+    }
+
+    user.password = nuevaPassword
+    user.resetPasswordToken = undefined
+    user.resetPasswordExpire = undefined
+
+    await user.save()
+
+    res.status(200).json({
+      success: true,
+      message: 'Contraseña restablecida exitosamente'
+    })
+  } catch (error) {
+    console.error('Error al restablecer contraseña:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    })
+  }
 }

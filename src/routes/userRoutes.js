@@ -14,7 +14,10 @@ const {
   deleteUser,
   verificarCodigo,
   getEntrenadores,
-  getCurrentUser
+  getCurrentUser,
+  solicitarRecuperacionPassword,
+  verificarTokenRecuperacion,
+  restablecerPassword
 } = require('../controllers/userController')
 
 router.get('/entrenadores', getEntrenadores)
@@ -32,5 +35,9 @@ router.get('/', protect, getAllUsers)
 router.get('/:id', protect, getUserById)
 router.put('/:id', protect, updateUser)
 router.delete('/:id', protect, deleteUser)
+
+router.post('/solicitar-recuperacion', solicitarRecuperacionPassword)
+router.get('/verificar-token-recuperacion/:token', verificarTokenRecuperacion)
+router.post('/restablecer-password', restablecerPassword)
 
 module.exports = router
